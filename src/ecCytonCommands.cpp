@@ -78,7 +78,12 @@ EcCytonCommands::EcCytonCommands
    )
 {
 }
-
+EcCytonCommands::EcCytonCommands
+   (Autopilot_Interface *autopilot_interface_
+   )
+{
+    autopilot_interface = autopilot_interface_;
+}
 //----------------------------------destructor---------------------------------
 EcCytonCommands::~EcCytonCommands
    (
@@ -87,10 +92,10 @@ EcCytonCommands::~EcCytonCommands
 }
 
 //----------------------------------overloading = -----------------------------
-const EcCytonCommands& EcCytonCommands:: operator=
+ EcCytonCommands& EcCytonCommands:: operator=
    (
-   const EcCytonCommands& orig
-   )const
+    EcCytonCommands& orig
+   )
 {
    return *this;
 }
@@ -230,13 +235,13 @@ EcBoolean EcCytonCommands::MoveJointsExample
 //-----------------------------Point Movement Example-------------------------
 EcBoolean EcCytonCommands::pointMovementExample
    (
-   const EcCoordinateSystemTransformation& pose
+const EcCoordinateSystemTransformation& pose
    )const
 {
 
    std::cout<<"Desired pose:  x: "<<pose.translation().x()<< " y: " <<pose.translation().y()<<" z: " <<pose.translation().z()<<std::endl;
 
-   setEndEffectorSet(POINT_EE_SET); // point end effector set index
+   setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
    EcEndEffectorPlacement desiredPlacement(pose);
    EcManipulatorEndEffectorPlacement actualEEPlacement;
    EcCoordinateSystemTransformation offset, zero, actualCoord;
@@ -261,6 +266,8 @@ EcBoolean EcCytonCommands::pointMovementExample
       {
          return EcFalse;
       }
+
+
       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
       
       //get the transformation between the actual and desired 
@@ -280,18 +287,50 @@ EcBoolean EcCytonCommands::pointMovementExample
 //-----------------------------Frame Movement Example-------------------------
 EcBoolean EcCytonCommands::frameMovementExample
    (
-   const EcCoordinateSystemTransformation& pose
-   )const
+
+   )
 {
 
-   std::cout<<"Desired pose:  x: "<<pose.translation().x()<< " y: " <<pose.translation().y()<<" z: " <<pose.translation().z()<<std::endl;
+
 
    setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
-   EcEndEffectorPlacement desiredPlacement(pose);
+
+   /*define end-effector frame and the jonts variables of Cyton epsilon300*/
+
+   EcReal target_x, target_y, target_z,target_roll,target_pitch, target_yaw;
+   EcReal current_x, current_y, current_z, current_roll, current_pitch, current_yaw;
+   EcRealVector currentJoints;
+
+   // Copy the target end-effector frame to Cyton epsilon300 need lock ????
+
+     setTargFrame();
+
+   printf("target point:\n%f;  %f;  %f;",targFrame.x,targFrame.y,targFrame.z);
+
+   /*translate end-effector frame to cyton desiredPose */
+//   EcVector endeffector_position_d;
+   EcCoordinateSystemTransformation desiredPose;
+
+//   endeffector_position_d.setX(targFrame.x);
+//   endeffector_position_d.setY(targFrame.y);
+//   endeffector_position_d.setZ(targFrame.z);
+
+   desiredPose.setTranslation(EcVector(.2, .25, .25));
+//   desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
+   EcOrientation orient;//set roll, pitch,yaw
+   orient.setFrom321Euler(.9, -.2, .4);
+ //  orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
+   desiredPose.setOrientation(orient);
+
+   /*define desiredPlacement to set epsilon300 move*/
+   EcEndEffectorPlacement desiredPlacement(desiredPose);
    EcManipulatorEndEffectorPlacement actualEEPlacement;
    EcCoordinateSystemTransformation offset, zero, actualCoord;
    zero.setTranslation(EcVector(0,0,0));
 
+
+   /*get status of epsilon300 arm*/
+   getJointValues(currentJoints);
    getActualPlacement(actualEEPlacement);
    EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
    if (state.size() < 1)
@@ -299,14 +338,18 @@ EcBoolean EcCytonCommands::frameMovementExample
       return EcFalse;
    }
    state[0]=desiredPlacement;
-   //set the desired position
-   setDesiredPlacement(desiredPlacement,0,0);
+
 
    // if it hasnt been achieved after 5 sec, return false
    EcU32 timeout = 5000;
    EcU32 interval = 10;
    EcU32 count = 0;
    EcBoolean achieved = EcFalse;
+
+   if (autopilot_interface->target_endeff_frame.arm_enable == 1)
+   {
+     //set the desired position
+     setDesiredPlacement(desiredPlacement,0,0);
    while(!achieved && !(count >= timeout/interval))
    {
       EcSLEEPMS(interval);
@@ -318,10 +361,33 @@ EcBoolean EcCytonCommands::frameMovementExample
       {
          return EcFalse;
       }
-      actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
 
+      actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
+//      getFrameStatus(actualCoord);
+//      getJoinStatus(currentJoints);
+//      updateFrameStatus();
+//      updateJoinStatus();
+      current_x = actualCoord.translation().x();
+      current_y = actualCoord.translation().y();
+      current_z = actualCoord.translation().z();
+      actualCoord.orientation().get321Euler(current_yaw,current_pitch,current_roll);
+      autopilot_interface->endeff_frame_status.x = current_x;
+      autopilot_interface->endeff_frame_status.y = current_y;
+      autopilot_interface->endeff_frame_status.z = current_z;
+      autopilot_interface->endeff_frame_status.roll = current_roll;
+      autopilot_interface->endeff_frame_status.pitch = current_pitch;
+      autopilot_interface->endeff_frame_status.yaw = current_yaw;
+
+
+      autopilot_interface->mani_joints.joint_posi_1 = currentJoints[0];
+      autopilot_interface->mani_joints.joint_posi_2 = currentJoints[1];
+      autopilot_interface->mani_joints.joint_posi_3 = currentJoints[2];
+      autopilot_interface->mani_joints.joint_posi_4 = currentJoints[3];
+      autopilot_interface->mani_joints.joint_posi_5 = currentJoints[4];
+      autopilot_interface->mani_joints.joint_posi_6 = currentJoints[5];
+      autopilot_interface->mani_joints.joint_posi_7 = currentJoints[6];
       //get the transformation between the actual and desired 
-      offset=(actualCoord.inverse()) * pose;
+      offset=(actualCoord.inverse()) * desiredPose;
       EcPrint(Debug)<<"distance between actual and desired: "<<offset.translation().mag()<<std::endl;
 
       if(offset.approxEq(zero,.00001))
@@ -330,8 +396,33 @@ EcBoolean EcCytonCommands::frameMovementExample
          achieved = EcTrue;
       }
    }
+   }
+   else
+   {
+       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
+       //getFrameStatus(actualCoord);
+       current_x = actualCoord.translation().x();
+       current_y = actualCoord.translation().y();
+       current_z = actualCoord.translation().z();
+       actualCoord.orientation().get321Euler(current_yaw,current_pitch,current_roll);
+       autopilot_interface->endeff_frame_status.x = current_x;
+       autopilot_interface->endeff_frame_status.y = current_y;
+       autopilot_interface->endeff_frame_status.z = current_z;
+       autopilot_interface->endeff_frame_status.roll = current_roll;
+       autopilot_interface->endeff_frame_status.pitch = current_pitch;
+       autopilot_interface->endeff_frame_status.yaw = current_yaw;
+
+       autopilot_interface->mani_joints.joint_posi_1 = currentJoints[0];
+       autopilot_interface->mani_joints.joint_posi_2 = currentJoints[1];
+       autopilot_interface->mani_joints.joint_posi_3 = currentJoints[2];
+       autopilot_interface->mani_joints.joint_posi_4 = currentJoints[3];
+       autopilot_interface->mani_joints.joint_posi_5 = currentJoints[4];
+       autopilot_interface->mani_joints.joint_posi_6 = currentJoints[5];
+       autopilot_interface->mani_joints.joint_posi_7 = currentJoints[6];
+   }
    std::cout<< (achieved ? "Achieved Pose" : "Failed to Achieve Pose") <<std::endl;
    return achieved;
+
 }
 
 //-----------------------------move gripper test-------------------------
@@ -396,328 +487,6 @@ EcBoolean EcCytonCommands::moveGripperExample
    return achieved;
 }
 
-//------------------file-----------manipulation action test-------------------------
-EcBoolean EcCytonCommands::manipulationActionTest
-   (
-   const EcString& filename,
-   const EcString& actionName
-   )const
-{
-   EcManipulationActionManager actionManager;
-   EcBoolean retVal = EcXmlObjectReaderWriter::readFromFile(actionManager, filename);
-   
-   if(!retVal)
-   {
-      std::cout << "Failed to load file : " << filename << std::endl;
-      return retVal;
-   }
-
-   retVal = setManipulationActionManager(actionManager);
-
-   EcManipulationScript script;
-   setManipulationScript(script);
-
-   if(!retVal)
-   {
-      return retVal;
-   }
-
-   retVal = setManipulationAction(actionName);
-   if(!retVal)
-   {
-      return retVal;
-   }
-
-   retVal = startManipulation();
-   if(!retVal)
-   {
-      return retVal;
-   }
-
-   Wait wait;
-   setManipulationCompletedCallback(boost::bind(&Wait::actionExecCompletionCallback, &wait, _1, _2));
-
-   // wait
-   retVal = wait.waitForCompletion();
-
-   return retVal;
-}
-
-//-----------------file------------manipulation action  series test-------------------------
-EcBoolean EcCytonCommands::manipulationActionSeriesTest
-(
-const EcString& filename
-)const
-{
-   EcManipulationActionManager actionManager;
-   EcBoolean retVal = EcXmlObjectReaderWriter::readFromFile(actionManager, filename);
-
-   if (!retVal)
-   {
-      return retVal;
-   }
-
-   retVal = setManipulationActionManager(actionManager);
-
-   EcManipulationScript script;
-   setManipulationScript(script);
-
-   if (!retVal)
-   {
-      return retVal;
-   }
-
-   EcXmlStringVector actionOrderList;
-
-   actionOrderList = actionManager.actionOrder();
-   EcU32 numActions = (EcU32)actionOrderList.size();
-   for (EcU32 ii = 0; ii < numActions; ++ii)
-   {
-
-      retVal = setManipulationAction(actionOrderList[ii].value());
-
-      if (!retVal)
-      {
-         return retVal;
-      }
-
-      retVal = startManipulation();
-      if (!retVal)
-      {
-         return retVal;
-      }
-
-      Wait wait;
-      setManipulationCompletedCallback(boost::bind(&Wait::actionExecCompletionCallback, &wait, _1, _2));
-
-      // wait
-      retVal = wait.waitForCompletion();
-   }
-   return retVal;
-}
-
-//----------------file-------------manipulation director test-------------------------
-EcBoolean EcCytonCommands::manipulationDirectorTest
-(
-const EcString& filename
-)const
-{
-
-   EcManipulationDirector director;
-   EcBoolean retVal = EcXmlObjectReaderWriter::readFromFile(director, filename);
-
-   if (!retVal)
-   {
-      return retVal;
-   }
-   std::cout << "loaded director:\n";
-   retVal = setManipulationDirector(director);
-
-   if (!retVal)
-   {
-      return retVal;
-   }
-   std::cout << "set director:\n";
-
-   retVal = startManipulation();
-   if (!retVal)
-   {
-      return retVal;
-   }
-   std::cout << "started director:\n";
-
-   Wait wait;
-   setManipulationCompletedCallback(boost::bind(&Wait::actionExecCompletionCallback, &wait, _1, _2));
-
-   // wait
-   retVal = wait.waitForCompletion();
-
-   return retVal;
-}
-
-//-----------------------------pick and place example-------------------------
-
-EcBoolean EcCytonCommands::pickAndPlaceExample
-   (
-   const EcString& cytonModel
-   )const
-{
-   EcRealVector initJoints(7);//vector of EcReals that holds the set of joint angles
-   initJoints[1]=-.7;
-   initJoints[3]=-.7;
-   initJoints[5]=-.7;
-
-   //Move Joints
-   MoveJointsExample(initJoints,.000001);
-
-   //open the gripper
-   if(cytonModel == "1500" || cytonModel == "300" )
-   {
-      moveGripperExample(0.0078);
-   }
-   if(cytonModel == "1500R2" || cytonModel == "300PX" )
-   {
-      moveGripperExample(0.0149);
-   }
-
-   if(cytonModel == "1500" || cytonModel == "1500R2")
-   {
-
-      EcCoordinateSystemTransformation desiredPose;
-      desiredPose.setTranslation(EcVector(0,.35,.2));
-      EcOrientation orient;
-      orient.setFrom123Euler(0,0,EcPi/2);//set roll, pitch,yaw
-      desiredPose.setOrientation(orient);
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(.115,.35,.2));
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(.115,.35,.05));
-      frameMovementExample(desiredPose); 
-
-      //close the gripper
-      if(cytonModel == "1500" || cytonModel == "300" )
-      {
-         moveGripperExample(-0.0078);
-      }
-      if(cytonModel == "1500R2" || cytonModel == "300PX" )
-      {
-         moveGripperExample(0.001);
-      }
-      EcSLEEPMS(1000);
-
-      desiredPose.setTranslation(EcVector(.115,.35,.2));
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(0,.35,.2));
-      frameMovementExample(desiredPose);   
-
-      orient.setFrom123Euler(0,0,EcPi);//set roll, pitch,yaw
-      desiredPose.setOrientation(orient);
-      frameMovementExample(desiredPose); 
-
-      desiredPose.setTranslation(EcVector(0,.35,.05));
-      frameMovementExample(desiredPose);   
-
-
-      //Opem the gripper
-      if(cytonModel == "1500" || cytonModel == "300" )
-      {
-         moveGripperExample(0.0078);
-      }
-      if(cytonModel == "1500R2" || cytonModel == "300PX" )
-      {
-         moveGripperExample(0.0149);
-      }
-      EcSLEEPMS(1000);
-
-      desiredPose.setTranslation(EcVector(0,.35,.2));
-      frameMovementExample(desiredPose);   
-   }
-
-   if(cytonModel=="300" || cytonModel=="300PX" )
-   {
-      EcCoordinateSystemTransformation desiredPose;
-      desiredPose.setTranslation(EcVector(0,.2,.15));
-      EcOrientation orient;
-      orient.setFrom123Euler(0,0,EcPi/2);//set roll, pitch,yaw
-      desiredPose.setOrientation(orient);
-
-      setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
-
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(.1,.2,.15));
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(.1,.2,.05));
-      frameMovementExample(desiredPose); 
-
-      //close the gripper
-      if(cytonModel == "1500" || cytonModel == "300" )
-      {
-         moveGripperExample(-0.0078);
-      }
-      if(cytonModel == "1500R2" || cytonModel == "300PX" )
-      {
-         moveGripperExample(0.001);
-      }
-      EcSLEEPMS(1000);
-
-      desiredPose.setTranslation(EcVector(.1,.2,.15));
-      frameMovementExample(desiredPose);   
-
-      desiredPose.setTranslation(EcVector(0,.2,.15));
-      frameMovementExample(desiredPose);   
-
-      orient.setFrom123Euler(0,0,EcPi);//set roll, pitch,yaw
-      desiredPose.setOrientation(orient);
-      frameMovementExample(desiredPose); 
-
-      desiredPose.setTranslation(EcVector(0,.2,.05));
-      frameMovementExample(desiredPose);   
-
-
-      //close the gripper
-      if(cytonModel == "1500" || cytonModel == "300" )
-      {
-         moveGripperExample(0.0078);
-      }
-      if(cytonModel == "1500R2" || cytonModel == "300PX" )
-      {
-         moveGripperExample(0.0149);
-      }
-      EcSLEEPMS(1000);
-
-      desiredPose.setTranslation(EcVector(0,.2,.15));
-      frameMovementExample(desiredPose);   
-   }
-   return EcTrue;
-
-
-}
-
-//-----------------------------pick planning example-------------------------
-EcBoolean EcCytonCommands::pathPlanningExample
-   (
-   const EcCoordinateSystemTransformation& pose
-   )const
-{
-   EcBoolean retVal = EcTrue;
-   // run this the first time
-   std::cout << "Running path planning" << std::endl;
-
-   EcManipulatorEndEffectorPlacement actualEEPlacement,desiredEEPlacement;
-   //switch to frame ee set, so the link doesnt move when we try and grip
-   setEndEffectorSet(FRAME_EE_SET);
-   EcSLEEPMS(100);
-   //get the current placement of the end effectors
-   getActualPlacement(actualEEPlacement);
-
-   desiredEEPlacement = actualEEPlacement;
-
-   if (desiredEEPlacement.offsetTransformations().size() < 1)
-   {
-      return EcFalse;
-   }
-   desiredEEPlacement.offsetTransformations()[0].setCoordSysXForm(pose);
-   retVal = setPathPlanningDesiredPlacement(desiredEEPlacement);
-
-   if(!retVal)
-   {
-      return EcFalse;
-   }
-
-   Wait wait;
-   setManipulationCompletedCallback(boost::bind(&Wait::actionExecCompletionCallback, &wait, _1, _2));
-
-   // wait
-   retVal = wait.waitForCompletion();
-
-   return retVal;
-}
-
 //-----------------------------end effector velocity test-------------------------
 EcBoolean EcCytonCommands::endEffectorVelocityTest
    (
@@ -775,4 +544,143 @@ EcBoolean EcCytonCommands::resetToHome
    EcSLEEPMS(2000);
 
    return retVal;
+}
+
+EcBoolean EcCytonCommands::serialComTest
+   (
+   )const
+{
+    autopilot_interface->endeff_frame_status.x = 1;
+    autopilot_interface->endeff_frame_status.y = 2;
+    autopilot_interface->endeff_frame_status.z = 3;
+    autopilot_interface->endeff_frame_status.roll = 4;
+    autopilot_interface->endeff_frame_status.pitch = 5;
+    autopilot_interface->endeff_frame_status.yaw = 6;
+    autopilot_interface->endeff_frame_status.vx=7;
+    autopilot_interface->endeff_frame_status.vy=8;
+    autopilot_interface->endeff_frame_status.vz=9;
+    autopilot_interface->endeff_frame_status.roll_rate =10;
+    autopilot_interface->endeff_frame_status.pitch_rate =11;
+    autopilot_interface->endeff_frame_status.yaw_rate =12;
+    autopilot_interface->endeff_frame_status.arm_enable=1;
+    autopilot_interface->endeff_frame_status.gripper_posi=2024;
+    autopilot_interface->endeff_frame_status.gripper_status=1;
+
+    autopilot_interface->mani_joints.joint_posi_1 = 7;
+    autopilot_interface->mani_joints.joint_posi_2 = 8;
+    autopilot_interface->mani_joints.joint_posi_3 = 9;
+    autopilot_interface->mani_joints.joint_posi_4 = 10;
+    autopilot_interface->mani_joints.joint_posi_5 = 11;
+    autopilot_interface->mani_joints.joint_posi_6 = 12;
+    autopilot_interface->mani_joints.joint_posi_7 = 13;
+
+    autopilot_interface->mani_joints.joint_rate_1 =1;
+    autopilot_interface->mani_joints.joint_rate_2 =2;
+    autopilot_interface->mani_joints.joint_rate_3 =3;
+    autopilot_interface->mani_joints.joint_rate_4 =4;
+    autopilot_interface->mani_joints.joint_rate_5 =5;
+    autopilot_interface->mani_joints.joint_rate_6 =6;
+    autopilot_interface->mani_joints.joint_rate_7 =7;
+
+    autopilot_interface->mani_joints.torque_1 = 7;
+    autopilot_interface->mani_joints.torque_2 = 6;
+    autopilot_interface->mani_joints.torque_3 = 5;
+    autopilot_interface->mani_joints.torque_4 = 4;
+    autopilot_interface->mani_joints.torque_5 = 3;
+    autopilot_interface->mani_joints.torque_6 = 2;
+    autopilot_interface->mani_joints.torque_7 = 1;
+
+   return 0;
+}
+
+EcBoolean EcCytonCommands::setTargFrame()
+{
+targFrame.x = autopilot_interface->target_endeff_frame.x;
+targFrame.y = autopilot_interface->target_endeff_frame.y;
+targFrame.z = autopilot_interface->target_endeff_frame.z;
+targFrame.vx = autopilot_interface->target_endeff_frame.vx;
+targFrame.vy = autopilot_interface->target_endeff_frame.vy;
+targFrame.vz = autopilot_interface->target_endeff_frame.vz;
+targFrame.roll = autopilot_interface->target_endeff_frame.roll;
+targFrame.pitch = autopilot_interface->target_endeff_frame.pitch;
+targFrame.yaw = autopilot_interface->target_endeff_frame.yaw;
+targFrame.roll_rate = autopilot_interface->target_endeff_frame.roll_rate;
+targFrame.pitch_rate = autopilot_interface->target_endeff_frame.pitch_rate;
+targFrame.yaw_rate = autopilot_interface->target_endeff_frame.yaw_rate;
+targFrame.arm_enable = autopilot_interface->target_endeff_frame.arm_enable;
+return 0;
+}
+
+EcBoolean EcCytonCommands::getFrameStatus
+(EcCoordinateSystemTransformation coordStatus)
+{
+    EcReal current_roll, current_pitch, current_yaw;
+    frameStatus.x = coordStatus.translation().x();
+    frameStatus.y = coordStatus.translation().y();
+    frameStatus.z = coordStatus.translation().z();
+    coordStatus.orientation().get321Euler(current_yaw,current_pitch,current_roll);
+    frameStatus.roll = current_roll;
+    frameStatus.pitch = current_pitch;
+    frameStatus.yaw = current_yaw;
+    return 0;
+}
+EcBoolean EcCytonCommands::getJoinStatus
+(EcRealVector currJoin)
+
+{
+    joinStatus.joint_posi_1 = currJoin[0];
+    joinStatus.joint_posi_2 = currJoin[1];
+    joinStatus.joint_posi_3 = currJoin[2];
+    joinStatus.joint_posi_4 = currJoin[3];
+    joinStatus.joint_posi_5 = currJoin[4];
+    joinStatus.joint_posi_6 = currJoin[5];
+    joinStatus.joint_posi_7 = currJoin[6];
+    return 0;
+}
+
+EcBoolean EcCytonCommands::updateFrameStatus()
+{
+    autopilot_interface->endeff_frame_status.x = frameStatus.x;
+    autopilot_interface->endeff_frame_status.y = frameStatus.y;
+    autopilot_interface->endeff_frame_status.z = frameStatus.z;
+    autopilot_interface->endeff_frame_status.roll = frameStatus.roll;
+    autopilot_interface->endeff_frame_status.pitch = frameStatus.pitch;
+    autopilot_interface->endeff_frame_status.yaw = frameStatus.yaw;
+    autopilot_interface->endeff_frame_status.vx = frameStatus.vx;
+    autopilot_interface->endeff_frame_status.vy = frameStatus.vy;
+    autopilot_interface->endeff_frame_status.vz = frameStatus.vz;
+    autopilot_interface->endeff_frame_status.roll_rate = frameStatus.roll_rate;
+    autopilot_interface->endeff_frame_status.pitch_rate = frameStatus.pitch_rate;
+    autopilot_interface->endeff_frame_status.yaw_rate = frameStatus.yaw_rate;
+    autopilot_interface->endeff_frame_status.arm_enable = frameStatus.arm_enable;
+    autopilot_interface->endeff_frame_status.gripper_posi = frameStatus.gripper_posi;
+    autopilot_interface->endeff_frame_status.gripper_status = frameStatus.gripper_status;
+    return 0;
+}
+EcBoolean EcCytonCommands:: updateJoinStatus()
+{
+    autopilot_interface->mani_joints.joint_posi_1 = joinStatus.joint_posi_1;
+    autopilot_interface->mani_joints.joint_posi_2 = joinStatus.joint_posi_2;
+    autopilot_interface->mani_joints.joint_posi_3 = joinStatus.joint_posi_3;
+    autopilot_interface->mani_joints.joint_posi_4 = joinStatus.joint_posi_4;
+    autopilot_interface->mani_joints.joint_posi_5 = joinStatus.joint_posi_5;
+    autopilot_interface->mani_joints.joint_posi_6 = joinStatus.joint_posi_6;
+    autopilot_interface->mani_joints.joint_posi_7 = joinStatus.joint_posi_7;
+
+    autopilot_interface->mani_joints.joint_rate_1 = joinStatus.joint_rate_1;
+    autopilot_interface->mani_joints.joint_rate_2 = joinStatus.joint_rate_2;
+    autopilot_interface->mani_joints.joint_rate_3 = joinStatus.joint_rate_3;
+    autopilot_interface->mani_joints.joint_rate_4 = joinStatus.joint_rate_4;
+    autopilot_interface->mani_joints.joint_rate_5 = joinStatus.joint_rate_5;
+    autopilot_interface->mani_joints.joint_rate_6 = joinStatus.joint_rate_6;
+    autopilot_interface->mani_joints.joint_rate_7 = joinStatus.joint_rate_7;
+
+    autopilot_interface->mani_joints.torque_1 = joinStatus.torque_1;
+    autopilot_interface->mani_joints.torque_2 = joinStatus.torque_2;
+    autopilot_interface->mani_joints.torque_3 = joinStatus.torque_3;
+    autopilot_interface->mani_joints.torque_4 = joinStatus.torque_4;
+    autopilot_interface->mani_joints.torque_5 = joinStatus.torque_5;
+    autopilot_interface->mani_joints.torque_6 = joinStatus.torque_6;
+    autopilot_interface->mani_joints.torque_7 = joinStatus.torque_7;
+    return 0;
 }

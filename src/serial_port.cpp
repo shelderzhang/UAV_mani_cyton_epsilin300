@@ -54,7 +54,6 @@
 
 #include "serial_port.h"
 
-
 // ----------------------------------------------------------------------------------
 //   Serial Port Manager Class
 // ----------------------------------------------------------------------------------
@@ -66,8 +65,8 @@ Serial_Port::
 Serial_Port(const char *uart_name_ , int baudrate_)
 {
 	initialize_defaults();
-	uart_name = uart_name_;
-	baudrate  = baudrate_;
+    uart_name = uart_name_;
+    baudrate  = baudrate_;
 }
 
 Serial_Port::
@@ -92,7 +91,7 @@ initialize_defaults()
 	fd     = -1;
 	status = SERIAL_PORT_CLOSED;
 
-	uart_name = (char*)"/dev/ttyUSB0";
+    uart_name = (char*)"/dev/ttyUSB0";
 	baudrate  = 57600;
 
 	// Start mutex
@@ -225,7 +224,7 @@ open_serial()
 	// Check success
 	if (fd == -1)
 	{
-		printf("failure, could not open port.\n");
+        printf("failure, could not open port:\n %s\n",uart_name);
 		throw EXIT_FAILURE;
 	}
 
@@ -239,7 +238,7 @@ open_serial()
 	// --------------------------------------------------------------------------
 	if (!success)
 	{
-		printf("failure, could not configure port.\n");
+        printf("failure, could not configure port:\n %s\n",uart_name);
 		throw EXIT_FAILURE;
 	}
 	if (fd <= 0)
@@ -270,7 +269,7 @@ void
 Serial_Port::
 close_serial()
 {
-	printf("CLOSE PORT\n");
+    printf("Close serial port\n");
 
 	int result = close(fd);
 
@@ -495,8 +494,6 @@ _setup_port(int baud, int data_bits, int stop_bits, bool parity, bool hardware_c
 	return true;
 }
 
-
-
 // ------------------------------------------------------------------------------
 //   Read Port with Lock
 // ------------------------------------------------------------------------------
@@ -515,7 +512,6 @@ _read_port(uint8_t &cp)
 
 	return result;
 }
-
 
 // ------------------------------------------------------------------------------
 //   Write Port with Lock
@@ -536,7 +532,6 @@ _write_port(char *buf, unsigned len)
 
 	// Unlock
 	pthread_mutex_unlock(&lock);
-
 
 	return bytesWritten;
 }

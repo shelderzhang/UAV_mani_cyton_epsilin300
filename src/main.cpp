@@ -11,15 +11,15 @@
 #include <foundCommon/ecCoordSysXForm.h>
 #include <iostream>
 
-#include <boost/assign/list_of.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
+//#include <boost/assign/list_of.hpp>
+//#include <boost/filesystem.hpp>
+//#include <boost/program_options/options_description.hpp>
+//#include <boost/program_options/parsers.hpp>
+//#include <boost/program_options/variables_map.hpp>
 
-namespace bpo = boost::program_options;
+//namespace bpo = boost::program_options;
 
-//------------------------------------------------------------------------------
+////------------------------------------------------------------------------------
 #define RC_CHECK(fun) do \
    { \
       std::cout << "Calling " << #fun << std::endl; \
@@ -39,57 +39,11 @@ int argc,
 char **argv
 )
 {
-   // get command line options
-   bpo::options_description options("Options");
-   options.add_options()
-      (
-      "help,h", "Show this help message"
-      )
-      (
-      "ipaddress,i",
-      bpo::value<EcString>()->default_value("127.0.0.1"),
-      "IpAddress of the computer to connect to"
-      )
-      (
-      "cytonVersion,c",
-      bpo::value<EcString>()->default_value("300"),
-      "cyton version"
-      )
-      (
-      "performExample,p",
-      bpo::value<EcU32>()->default_value(0),
-      "perform example"
-      )
-      ;
-
-   // Parse the command line options
-   bpo::parsed_options parsed = bpo::command_line_parser(argc, argv).options(options).run();
-   bpo::variables_map vm;
-   bpo::store(parsed, vm);
-   bpo::notify(vm);
-
-   if (vm.count("help") || (argc == 1))
-   {
-      std::cout << options << std::endl;
-      /*********************valid tests*****************************/
-      std::cout << "Examples: \n1=Joint Movement Example\n2=Point EE Example\n3=Frame EE Example\n4=Gripper Example\n5=manipulationActionTest\n6=manipulationActionSeriesTest\n7=Pick and Place example\n8=pathPalnningExample\n9=velocityControlExample\n10=ManipulationDirectorExample" << std::endl << std::endl;
-      std::cout << "Cyton Versions: \n300=cyton gamma 300\n300PX=cyton gamma 300 with PX/AX12 gripper\n1500=cyton gamma 1500\n1500R2=cyton gamma 1500R2\"" << std::endl;
-
-      /*********************valid tests*****************************/
-      return 1;
-   }
-
-   //to enable the printing of EcPrint(Debug) statements, 
-   //call set EC_PRINT_LEVEL=DEBUG from the command line
-   //to disable
-   //call set EC_PRINT_LEVEL=
-   EcPrint(Debug) << "Viewing Debug print statements " << std::endl;
-
-   // get config file
-   EcString ipAddress = vm["ipaddress"].as<EcString>();
-   EcString cytonVersion = vm["cytonVersion"].as<EcString>();
-   EcU32 performExample = vm["performExample"].as<EcU32>();
-
+ /*use the default ip, cytonVersion and performExample */
+   //autor:gyzhang
+   EcString ipAddress = "127.0.0.1";
+   EcString cytonVersion = "300";
+   EcU32 performExample = 3;
    EcCytonCommands cytonCommands;
 
    EcString cytonDir = Ec::Application::getDataDirectory("cyton");
@@ -98,6 +52,14 @@ char **argv
       cytonDir = ".";
    }
    cytonCommands.openNetwork(ipAddress);
+   EcVector endeffector_position_d;
+   EcCoordinateSystemTransformation desiredPose;
+
+   desiredPose.setTranslation(endeffector_position_d);
+   EcOrientation orient;
+   orient.setFrom123Euler(.4, -.2, .9);//set roll, pitch,yaw
+   desiredPose.setOrientation(orient);
+   RC_CHECK(cytonCommands.frameMovementExample(desiredPose));
 
    if (performExample == 1)
    {

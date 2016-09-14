@@ -62,8 +62,8 @@
 #include <pthread.h> // This uses POSIX Threads
 #include <signal.h>
 
-#include <common/mavlink.h>
-
+//#include <common/mavlink.h>
+#include <UAV_mani/mavlink.h>
 
 // ------------------------------------------------------------------------------
 //   Defines
@@ -92,15 +92,13 @@
 
 //class Serial_Port;
 
-
-
 // ----------------------------------------------------------------------------------
 //   Serial Port Manager Class
 // ----------------------------------------------------------------------------------
 /*
  * Serial Port Class
  *
- * This object handles the opening and closing of the offboard computer's
+ * This object handles the opening and closing of the onboard computer's
  * serial port over which we'll communicate.  It also has methods to write
  * a byte stream buffer.  MAVlink is not used in this object yet, it's just
  * a serialization interface.  To help with read and write pthreading, it
@@ -121,14 +119,14 @@ public:
 	int  baudrate;
 	int  status;
 
-	int read_message(mavlink_message_t &message);
-	int write_message(const mavlink_message_t &message);
+    int read_message(mavlink_message_t &message); //read mavlink message from serial port
+    int write_message(const mavlink_message_t &message); //write mavlink message into serial port
 
 	void open_serial();
 	void close_serial();
 
-	void start();
-	void stop();
+    void start(); // open a serial port
+    void stop(); // close a serial port
 
 	void handle_quit( int sig );
 
@@ -144,8 +142,6 @@ private:
 	int _write_port(char *buf, unsigned len);
 
 };
-
-
 
 #endif // SERIAL_PORT_H_
 

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+   <FileVersion major="1" minor="6" />
+   <Project>
+      <Option title="UAV_mani_epsilon300" />
+      <Option makefile_is_custom="1" />
+      <Option compiler="gcc" />
+      <Option virtualFolders="CMake Files\;" />
+      <Build>
+      <Target title="all">
+         <Option working_dir="/home/gyz/src/UAV_mani_epsilon300/build" />
+         <Option type="4" />
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 all" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="edit_cache">
+         <Option working_dir="/home/gyz/src/UAV_mani_epsilon300/build" />
+         <Option type="4" />
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 edit_cache" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="rebuild_cache">
+         <Option working_dir="/home/gyz/src/UAV_mani_epsilon300/build" />
+         <Option type="4" />
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 rebuild_cache" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="APP_epsilon_control">
+         <Option output="/home/gyz/src/UAV_mani_epsilon300/build/APP_epsilon_control" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/gyz/src/UAV_mani_epsilon300/build" />
+         <Option object_output="./" />
+         <Option type="1" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DEC_BUILD_SHARED_LIBS" />
+            <Add option="-DEC_HAVE_ACTIN" />
+            <Add option="-DUNICODE" />
+            <Add option="-D_UNICODE" />
+            <Add option="-DACTIN_VERSION_MAJOR=4" />
+            <Add option="-DACTIN_VERSION_MINOR=0" />
+            <Add option="-DACTIN_VERSION_PATCH=20" />
+            <Add option="-DACTIN_VERSION=&quot;4.0.20&quot;" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/boost-20160107-gcc4.8-amd64/boost_1_58_0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/render_OSS-20160407-gcc4.8-amd64/OSG-3.4.0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/render_OSS-20160407-gcc4.8-amd64/Qt-5.6.0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../include" />
+            <Add directory="/home/gyz/src/UAV_mani_epsilon300/src/../include/mavlink/v2.0" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/c++/4.8" />
+            <Add directory="/usr/include/c++/4.8/backward" />
+            <Add directory="/usr/include/x86_64-linux-gnu" />
+            <Add directory="/usr/include/x86_64-linux-gnu/c++/4.8" />
+            <Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.8/include" />
+            <Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed" />
+            <Add directory="/usr/local/include" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 APP_epsilon_control" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      <Target title="APP_epsilon_control/fast">
+         <Option output="/home/gyz/src/UAV_mani_epsilon300/build/APP_epsilon_control" prefix_auto="0" extension_auto="0" />
+         <Option working_dir="/home/gyz/src/UAV_mani_epsilon300/build" />
+         <Option object_output="./" />
+         <Option type="1" />
+         <Option compiler="gcc" />
+         <Compiler>
+            <Add option="-DEC_BUILD_SHARED_LIBS" />
+            <Add option="-DEC_HAVE_ACTIN" />
+            <Add option="-DUNICODE" />
+            <Add option="-D_UNICODE" />
+            <Add option="-DACTIN_VERSION_MAJOR=4" />
+            <Add option="-DACTIN_VERSION_MINOR=0" />
+            <Add option="-DACTIN_VERSION_PATCH=20" />
+            <Add option="-DACTIN_VERSION=&quot;4.0.20&quot;" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/boost-20160107-gcc4.8-amd64/boost_1_58_0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/render_OSS-20160407-gcc4.8-amd64/OSG-3.4.0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../external/render_OSS-20160407-gcc4.8-amd64/Qt-5.6.0/include" />
+            <Add directory="/home/gyz/Applications/Robai/CytonViewer/toolkits/../include" />
+            <Add directory="/home/gyz/src/UAV_mani_epsilon300/src/../include/mavlink/v2.0" />
+            <Add directory="/usr/include" />
+            <Add directory="/usr/include/c++/4.8" />
+            <Add directory="/usr/include/c++/4.8/backward" />
+            <Add directory="/usr/include/x86_64-linux-gnu" />
+            <Add directory="/usr/include/x86_64-linux-gnu/c++/4.8" />
+            <Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.8/include" />
+            <Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed" />
+            <Add directory="/usr/local/include" />
+         </Compiler>
+         <MakeCommands>
+            <Build command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 APP_epsilon_control/fast" />
+            <CompileFile command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 &quot;$file&quot;" />
+            <Clean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+            <DistClean command="/usr/bin/make -f &quot;/home/gyz/src/UAV_mani_epsilon300/build/Makefile&quot;  VERBOSE=1 clean" />
+         </MakeCommands>
+      </Target>
+      </Build>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/autopilot_interface.cpp">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/ecCytonCommands.cpp">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/epsilon_control_main.cpp">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/serial_port.cpp">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/autopilot_interface.h">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/ecCytonCommands.h">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/epsilon_control_main.h">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/serial_port.h">
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/CMakeLists.txt">
+          <Option virtualFolder="CMake Files\" />
+      </Unit>
+      <Unit filename="/home/gyz/src/UAV_mani_epsilon300/src/CytonBuildDefaults.cmake">
+          <Option virtualFolder="CMake Files\" />
+      </Unit>
+   </Project>
+</CodeBlocks_project_file>

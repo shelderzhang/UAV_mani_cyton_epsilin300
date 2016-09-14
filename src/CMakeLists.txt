@@ -13,27 +13,28 @@ include(CytonBuildDefaults.cmake)
 
 # Pull in rendering requirements
 include_directories("${render_inc}"
-                    "${PROJECT_SOURCE_DIR}/../include/mavlink/v1.0")
+                    "${PROJECT_SOURCE_DIR}/../include/mavlink/v2.0")
 
 link_directories(${render_lib})
 #link_directories(${toolkits}/../lib)#
 
 # Set the contents of our executable
-add_executable(cytonCommandControl
-   ecCytonCommands.cpp
-   main.cpp
+#add_executable(cytonCommandControl
+ #  ecCytonCommands.cpp
+ #  main.cpp
  #  ecCytonCommands.h
-)
+#)
 
-add_executable(mavlink_control
-mavlink_control.cpp 
+add_executable(APP_epsilon_control
+epsilon_control_main.cpp
 serial_port.cpp 
 autopilot_interface.cpp
+ecCytonCommands.cpp
 )
 # Link appropriate libraries
 
-target_link_libraries(
-   cytonCommandControl
+target_link_libraries(APP_epsilon_control
+   pthread
    ecFoundCore
    ecXml
    ecXmlReaderWriter
@@ -58,21 +59,21 @@ target_link_libraries(
    ecRemoteCommand
 )
 
-target_link_libraries(mavlink_control
-                        pthread)
+#target_link_libraries(mavlink_control
+#                        pthread)
 # Link appropriate libraries
 if(UNIX)
 target_link_libraries(
-   cytonCommandControl
-   "${toolkits}/../bin/remoteCommandClientPlugin.ecp"
-   "${toolkits}/../bin/imageSensor.ecp"
+   APP_epsilon_control
+  "${toolkits}/../bin/remoteCommandClientPlugin.ecp"
+  "${toolkits}/../bin/imageSensor.ecp"
 )
 
 endif(UNIX)
 
 if(WIN32)
 target_link_libraries(
-   cytonCommandControl
+   APP_epsilon_control
    "${toolkits}/../lib/remoteCommandClientPlugin.lib"
 )
 endif(WIN32)

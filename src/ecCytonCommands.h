@@ -10,6 +10,10 @@
 //------------------------------------------------------------------------------
 #include <foundCore/ecTypes.h>
 #include <foundCommon/ecCoordSysXForm.h>
+#include <UAV_mani/mavlink.h>
+#include "autopilot_interface.h"
+
+
 
 /// This class uses the remote commands API to communicate with the 
 //  ActinViewer/CytonViewer or ActinRT with the remoteCommandServerPlugin loaded.
@@ -21,7 +25,9 @@ public:
    EcCytonCommands
       (
       );
-
+   EcCytonCommands
+      (Autopilot_Interface *autopilot_interface_
+      );
    /// destructor
    virtual ~EcCytonCommands
       (
@@ -34,10 +40,10 @@ public:
       );
 
    /// overloading = operator
-   const EcCytonCommands& operator=
+    EcCytonCommands& operator=
       (
-      const EcCytonCommands& orig
-      )const;
+       EcCytonCommands& orig
+      );
 
    /// overloading == operator
    EcBoolean operator==
@@ -77,64 +83,17 @@ public:
       (
       const EcReal gripperPos
       )const;
-
-   /// Test executing manipulation actions
-   /// @param[in] filename (EcString&) manipulation action manager filename
-   /// @param[in] actionName (EcString&) manipulation action name to run
-   /// @return    flag     (EcBoolean) which returns the status of command
-   virtual EcBoolean manipulationActionTest
-      (
-      const EcString& filename,
-      const EcString& actionName
-      )const;
-
-   /// Test executing manipulation action series
-   /// @param[in] filename (EcString&) manipulation action manager filename
-   /// @return    flag     (EcBoolean) which returns the status of command
-   virtual EcBoolean manipulationActionSeriesTest
-      (
-      const EcString& filename
-      )const;
-
-   /// Test executing manipulation director script
-   /// @param[in] filename (EcString&) manipulation action manager filename
-   /// @return    flag     (EcBoolean) which returns the status of command
-   virtual EcBoolean manipulationDirectorTest
-      (
-      const EcString& filename
-      )const;
-
    /// move the robot using point EE set (only constrains position (x,y,z))
    /// @param[in] pose (EcCoordinateSystemTransformation&) desired pose
    /// @return         (EcBoolean) flag which returns the status of command
    virtual EcBoolean pointMovementExample
-      (
-      const EcCoordinateSystemTransformation& pose
-      )const;
+      (const EcCoordinateSystemTransformation &pose)const;
 
    /// move the robot using frame EE set (constrains x,y,z, and roll, pitch, yaw)
    /// @param[in] pose (EcCoordinateSystemTransformation&) desired pose
    /// @return         (EcBoolean) flag which returns the status of command
    virtual EcBoolean frameMovementExample
-      (
-      const EcCoordinateSystemTransformation& pose
-      )const;
-
-   ///sample sequence of remote command actions to pick up and place an object
-   /// @param[in] cytonModel (EcString&) cyton version (300, 300PX, 1500, 1500R2)
-   /// @return         (EcBoolean) flag which returns the status of command
-   virtual EcBoolean pickAndPlaceExample
-      (
-      const EcString& cytonModel
-      )const;
-
-   ///sample path planning to get to the desired pose
-   // @param[in] pose (EcCoordinateSystemTransformation&) desired Pose
-   /// @return         (EcBoolean) flag which returns the status of command
-   virtual EcBoolean pathPlanningExample
-      (
-      const EcCoordinateSystemTransformation& pose
-      )const;
+      ();
 
    /// move the end effector with the desired end effector velocity for one second
    /// @param[in] endVelo (EcRealVector&) desired velocity direction and magnitude [x,y,z]
@@ -156,9 +115,31 @@ public:
        (
        )const;
 
+   virtual EcBoolean serialComTest
+       (
+       )const;
+
+  /*set the target end-eff frame to targFrame
+   * while lock autopilot_interface.target_endeff_frame*/
+   virtual EcBoolean setTargFrame();
+
+
+
+   /*get the all status of the Epsilon 300*/
+   virtual EcBoolean getFrameStatus(EcCoordinateSystemTransformation coordStatus);
+   virtual EcBoolean getJoinStatus(EcRealVector currJoin);
+
+   /*update  autopilot_interface.endeff_frame_status and
+    * autopilot_interface.mani_joints the from frameStatus and joinStatus
+    *  while lock autopilot_interface */
+   virtual EcBoolean updateFrameStatus();
+   virtual EcBoolean updateJoinStatus();
 
 protected:
-
+   Autopilot_Interface *autopilot_interface;
+   mavlink_target_endeff_frame_t targFrame;
+   mavlink_endeff_frame_status_t frameStatus;
+   mavlink_manipulator_joint_status_t joinStatus;
 };
 
 #endif //ecCytonCommands_H_
