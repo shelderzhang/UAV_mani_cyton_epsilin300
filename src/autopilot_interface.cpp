@@ -70,8 +70,10 @@ Autopilot_Interface(Serial_Port *serial_port_)
 	writing_status = 0;      // whether the write thread is running
     system_id = 0;
     companion_id = 0;
-    target_endeff_frame.arm_enable = 0;
-    endeff_frame_status.arm_enable = 0;
+
+    memset(&target_endeff_frame, 0, sizeof(target_endeff_frame));
+    memset(&endeff_frame_status, 0, sizeof(endeff_frame_status));
+    memset(&mani_joints, 0, sizeof(mani_joints));
 	time_to_exit   = false;  // flag to signal thread exit
 
 	read_tid  = 0; // read thread id
@@ -121,9 +123,9 @@ read_messages()
 			{
                 case MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME:
                 {
-                    printf("MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME\n");
+                   // printf("MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME\n");
                     mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
-                    printf("target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
+                  //  printf("target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
                     break;
                 }
 				default:
@@ -136,8 +138,6 @@ read_messages()
 			} // end: switch msgid
 
 		} // end: if read message
-
-
 
 		// give the write thread time to use the port
 		if ( writing_status > false ) {

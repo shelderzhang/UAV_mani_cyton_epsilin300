@@ -58,6 +58,20 @@
 
 #include "epsilon_control_main.h"
 #include "ecCytonCommands.h"
+
+#define RC_CHECK(fun) do \
+   { \
+      std::cout << "Calling " << #fun << std::endl; \
+      if(!fun) \
+      { \
+         std::cerr << "Problem with command " << #fun << "\n"; \
+      } \
+      else \
+      {\
+        EcPrint(None) << #fun << " successfully completed!" << "\n"; \
+      }\
+   } while(0)
+
 // ------------------------------------------------------------------------------
 //   TOP
 // ------------------------------------------------------------------------------
@@ -129,28 +143,39 @@ top (int argc, char **argv)
     //   Cyton epsilon300 control start
     // --------------------------------------------------------------------------
 
-//    EcString ipAddress = "127.0.0.1";
-//    EcString cytonVersion = "300";
-//    EcCytonCommands cytonCommands(&autopilot_interface);
+//   EcString cytonVersion = "300PX";
 //    EcString cytonDir = Ec::Application::getDataDirectory("cyton");
 //    if (cytonDir.empty())
 //    {
 //       cytonDir = ".";
 //    }
-//    cytonCommands.openNetwork(ipAddress);
+    EcString ipAddress = "127.0.0.1";
+    cytonCommands.openNetwork(ipAddress);
+
+   // initialize robotic arm
+    EcSLEEPMS(500);
+    EcRealVector jointposition(7);
+    jointposition[1] = -.7;
+    jointposition[3] = -.7;
+    jointposition[5] = -.7;
+
+
+    //moves to forward position
+    RC_CHECK(cytonCommands.MoveJointsExample(jointposition, .000001));//Joint Movement Example
 
 //    /*Copy the target end-effector frame to Cyton epsilon300*/
-
-//    cytonCommands.closeNetwork();
-while(1)
-{
-    cytonCommands.serialComTest();
-}
+//      cytonCommands.frameMovementExample();
+    while(1)
+    {
+        cytonCommands.frameMovementExample();
+    }
     // --------------------------------------------------------------------------
     //   Join threads of serial port
     // --------------------------------------------------------------------------
     pthread_join (autopilot_interface.read_tid, NULL);
     pthread_join (autopilot_interface.write_tid, NULL);
+
+    cytonCommands.closeNetwork();
 	// woot!
 	return 0;
 

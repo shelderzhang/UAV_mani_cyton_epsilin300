@@ -83,6 +83,9 @@ EcCytonCommands::EcCytonCommands
    )
 {
     autopilot_interface = autopilot_interface_;
+    memset(&frameStatus, 0, sizeof(frameStatus));
+    memset(&joinStatus, 0, sizeof(joinStatus));
+    memset(&targFrame, 0, sizeof(targFrame));
 }
 //----------------------------------destructor---------------------------------
 EcCytonCommands::~EcCytonCommands
@@ -290,22 +293,13 @@ EcBoolean EcCytonCommands::frameMovementExample
 
    )
 {
-
-
-
    setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
-
-   /*define end-effector frame and the jonts variables of Cyton epsilon300*/
-
-   EcReal target_x, target_y, target_z,target_roll,target_pitch, target_yaw;
-   EcReal current_x, current_y, current_z, current_roll, current_pitch, current_yaw;
-   EcRealVector currentJoints;
 
    // Copy the target end-effector frame to Cyton epsilon300 need lock ????
 
      setTargFrame();
 
-   printf("target point:\n%f;  %f;  %f;",targFrame.x,targFrame.y,targFrame.z);
+   printf("target point:\n%f;  %f;  %f;\n",targFrame.x,targFrame.y,targFrame.z);
 
    /*translate end-effector frame to cyton desiredPose */
 //   EcVector endeffector_position_d;
@@ -315,30 +309,28 @@ EcBoolean EcCytonCommands::frameMovementExample
 //   endeffector_position_d.setY(targFrame.y);
 //   endeffector_position_d.setZ(targFrame.z);
 
-   desiredPose.setTranslation(EcVector(.2, .25, .25));
-//   desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
+//   desiredPose.setTranslation(EcVector(.1, .2, .05));
+   desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
    EcOrientation orient;//set roll, pitch,yaw
-   orient.setFrom321Euler(.9, -.2, .4);
+   orient.setFrom123Euler( 0, 0,-EcPi);
+
  //  orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
    desiredPose.setOrientation(orient);
 
    /*define desiredPlacement to set epsilon300 move*/
    EcEndEffectorPlacement desiredPlacement(desiredPose);
+
+   /*get status of epsilon300 arm*/
    EcManipulatorEndEffectorPlacement actualEEPlacement;
+   EcRealVector currentJoints;
    EcCoordinateSystemTransformation offset, zero, actualCoord;
    zero.setTranslation(EcVector(0,0,0));
 
-
-   /*get status of epsilon300 arm*/
-   getJointValues(currentJoints);
    getActualPlacement(actualEEPlacement);
-   EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
-   if (state.size() < 1)
+    if (actualEEPlacement.offsetTransformations().size() < 1)
    {
       return EcFalse;
    }
-   state[0]=desiredPlacement;
-
 
    // if it hasnt been achieved after 5 sec, return false
    EcU32 timeout = 5000;
@@ -346,7 +338,8 @@ EcBoolean EcCytonCommands::frameMovementExample
    EcU32 count = 0;
    EcBoolean achieved = EcFalse;
 
-   if (autopilot_interface->target_endeff_frame.arm_enable == 1)
+   if (targFrame.arm_enable == 1)
+//   if (1)
    {
      //set the desired position
      setDesiredPlacement(desiredPlacement,0,0);
@@ -363,29 +356,15 @@ EcBoolean EcCytonCommands::frameMovementExample
       }
 
       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
-//      getFrameStatus(actualCoord);
-//      getJoinStatus(currentJoints);
-//      updateFrameStatus();
-//      updateJoinStatus();
-      current_x = actualCoord.translation().x();
-      current_y = actualCoord.translation().y();
-      current_z = actualCoord.translation().z();
-      actualCoord.orientation().get321Euler(current_yaw,current_pitch,current_roll);
-      autopilot_interface->endeff_frame_status.x = current_x;
-      autopilot_interface->endeff_frame_status.y = current_y;
-      autopilot_interface->endeff_frame_status.z = current_z;
-      autopilot_interface->endeff_frame_status.roll = current_roll;
-      autopilot_interface->endeff_frame_status.pitch = current_pitch;
-      autopilot_interface->endeff_frame_status.yaw = current_yaw;
+      getFrameStatus(actualCoord);
+      // lock Frame status
+      updateFrameStatus();
 
+      getJointValues(currentJoints);
+      getJoinStatus(currentJoints);
+      // lock Join status
+      updateJoinStatus();
 
-      autopilot_interface->mani_joints.joint_posi_1 = currentJoints[0];
-      autopilot_interface->mani_joints.joint_posi_2 = currentJoints[1];
-      autopilot_interface->mani_joints.joint_posi_3 = currentJoints[2];
-      autopilot_interface->mani_joints.joint_posi_4 = currentJoints[3];
-      autopilot_interface->mani_joints.joint_posi_5 = currentJoints[4];
-      autopilot_interface->mani_joints.joint_posi_6 = currentJoints[5];
-      autopilot_interface->mani_joints.joint_posi_7 = currentJoints[6];
       //get the transformation between the actual and desired 
       offset=(actualCoord.inverse()) * desiredPose;
       EcPrint(Debug)<<"distance between actual and desired: "<<offset.translation().mag()<<std::endl;
@@ -399,26 +378,21 @@ EcBoolean EcCytonCommands::frameMovementExample
    }
    else
    {
-       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
-       //getFrameStatus(actualCoord);
-       current_x = actualCoord.translation().x();
-       current_y = actualCoord.translation().y();
-       current_z = actualCoord.translation().z();
-       actualCoord.orientation().get321Euler(current_yaw,current_pitch,current_roll);
-       autopilot_interface->endeff_frame_status.x = current_x;
-       autopilot_interface->endeff_frame_status.y = current_y;
-       autopilot_interface->endeff_frame_status.z = current_z;
-       autopilot_interface->endeff_frame_status.roll = current_roll;
-       autopilot_interface->endeff_frame_status.pitch = current_pitch;
-       autopilot_interface->endeff_frame_status.yaw = current_yaw;
+       getActualPlacement(actualEEPlacement);
+       if (actualEEPlacement.offsetTransformations().size() < 1)
+       {
+          return EcFalse;
+       }
 
-       autopilot_interface->mani_joints.joint_posi_1 = currentJoints[0];
-       autopilot_interface->mani_joints.joint_posi_2 = currentJoints[1];
-       autopilot_interface->mani_joints.joint_posi_3 = currentJoints[2];
-       autopilot_interface->mani_joints.joint_posi_4 = currentJoints[3];
-       autopilot_interface->mani_joints.joint_posi_5 = currentJoints[4];
-       autopilot_interface->mani_joints.joint_posi_6 = currentJoints[5];
-       autopilot_interface->mani_joints.joint_posi_7 = currentJoints[6];
+       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
+       getFrameStatus(actualCoord);
+       // lock Frame status
+       updateFrameStatus();
+
+       getJointValues(currentJoints);
+       getJoinStatus(currentJoints);
+       // lock Join status
+       updateJoinStatus();
    }
    std::cout<< (achieved ? "Achieved Pose" : "Failed to Achieve Pose") <<std::endl;
    return achieved;
@@ -657,6 +631,7 @@ EcBoolean EcCytonCommands::updateFrameStatus()
     autopilot_interface->endeff_frame_status.gripper_status = frameStatus.gripper_status;
     return 0;
 }
+
 EcBoolean EcCytonCommands:: updateJoinStatus()
 {
     autopilot_interface->mani_joints.joint_posi_1 = joinStatus.joint_posi_1;

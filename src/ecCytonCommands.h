@@ -137,7 +137,10 @@ public:
 
 protected:
    Autopilot_Interface *autopilot_interface;
+   /*targFrame commands from pixhawk*/
    mavlink_target_endeff_frame_t targFrame;
+
+   /*frameStatus frameStatus of Epsilon 300 need to send to pixhawk*/
    mavlink_endeff_frame_status_t frameStatus;
    mavlink_manipulator_joint_status_t joinStatus;
 };
