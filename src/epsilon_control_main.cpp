@@ -96,11 +96,12 @@ top (int argc, char **argv)
 	// --------------------------------------------------------------------------
 
     /*
+     * Construct a Serial_Port object
      * This object handles the opening and closing of the Robai cyton epsilon300 controller
      *  computer's serial port over which it will communicate to an autopilot.  It has
 	 * methods to read and write a mavlink_message_t object.  To help with read
-	 * and write in the context of pthreading, it gaurds port operations with a
-	 * pthread mutex lock.
+     * and write in the context of pthreading, it gaurds port operations with a
+     * pthread mutex lock (int fd).
 	 *
 	 */
 	Serial_Port serial_port(uart_name, baudrate);
@@ -109,7 +110,7 @@ top (int argc, char **argv)
 	/*
      * Construct an Autopilot_Interface objiect,This object will start
      *  two threads for read and write MAVlink message of
-     * commands to move the robotic arm and it status.
+     * commands to move the robotic arm and its status.
 	 *
 	 */
 	Autopilot_Interface autopilot_interface(&serial_port);
@@ -123,9 +124,8 @@ top (int argc, char **argv)
 
 	/*
 	 * Setup interrupt signal handler
-	 *
-	 * Responds to early exits signaled with Ctrl-C.  The handler will command
-	 * to exit offboard mode if required, and close threads and the port.	
+     * Responds to early exits signaled with Ctrl-C.  The handler will command
+     * to close threads and the port.
      *
 	 */
 	serial_port_quit         = &serial_port;
@@ -133,8 +133,7 @@ top (int argc, char **argv)
 	signal(SIGINT,quit_handler);
 
 	/*
-	 * Start the port and autopilot_interface
-	 * This is where the port is opened, and read and write threads are started.
+     * This is where the port is opened, and read and write threads are started.
 	 */
 	serial_port.start();
 	autopilot_interface.start();
@@ -155,20 +154,38 @@ top (int argc, char **argv)
    // initialize robotic arm
     EcSLEEPMS(500);
     EcRealVector jointposition(7);
-    jointposition[1] = -.7;
-    jointposition[3] = -.7;
-    jointposition[5] = -.7;
+       jointposition[1] = -0.7;
+       jointposition[3] = -0.7;
+       jointposition[5] = -0.7;
+
+       jointposition[0] = -1.6;
+       jointposition[1] = -0.5;
+       jointposition[2] = 0;
+       jointposition[3] = -0.5;
+       jointposition[4] = 0;
+       jointposition[5] = 0.47;
+       jointposition[6] = -1.6;
+    // initialize robotic arm COM in center
+//    jointposition[0] = -1.6;
+//    jointposition[1] = 0.6;
+//    jointposition[2] = 0;
+//    jointposition[3] = -1.6;
+//    jointposition[4] = -0.1;
+//    jointposition[5] = 0.6;
+//    jointposition[6] = -1.6;
+
+
 
 
     //moves to forward position
     RC_CHECK(cytonCommands.MoveJointsExample(jointposition, .000001));//Joint Movement Example
 
 //    /*Copy the target end-effector frame to Cyton epsilon300*/
-//      cytonCommands.frameMovementExample();
-    while(1)
-    {
-        cytonCommands.frameMovementExample();
-    }
+//     cytonCommands.frameMovementExample();
+//    while(1)
+//    {
+//        cytonCommands.frameMovementExample();
+//    }
     // --------------------------------------------------------------------------
     //   Join threads of serial port
     // --------------------------------------------------------------------------

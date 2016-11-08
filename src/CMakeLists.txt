@@ -66,6 +66,7 @@ if(UNIX)
 target_link_libraries(
    APP_epsilon_control
   "${toolkits}/../bin/remoteCommandClientPlugin.ecp"
+
   "${toolkits}/../bin/imageSensor.ecp"
 )
 

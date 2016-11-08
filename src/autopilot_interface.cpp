@@ -95,29 +95,24 @@ void
 Autopilot_Interface::
 read_messages()
 {
-	bool success;               // receive success flag
-	// Blocking wait for new data
-    printf("read_message\n");
-
-    while (!time_to_exit )
-	{
-		// ----------------------------------------------------------------------
+    bool success = 0;               // receive success flag
+    // printf("read_message\n");
+    mavlink_message_t message;
+    while (!success )
+    {
+        // ----------------------------------------------------------------------
 		//   READ MESSAGE
 		// ----------------------------------------------------------------------
-
-        mavlink_message_t message;
         success = serial_port->read_message(message);
         // ---------------------------------------------------------------------
 		//   HANDLE MESSAGE
 		// ----------------------------------------------------------------------
 		if( success )
 		{
-
             // Store message sysid and compid.
             // Note this doesn't handle multiple message sources.
               system_id = message.sysid;
               companion_id = message.compid;
-
 			// Handle Message ID
 			switch (message.msgid)
 			{
@@ -133,19 +128,13 @@ read_messages()
                     printf("Warning, did not handle message id %i\n",message.msgid);
 					break;
 				}
-
-
-			} // end: switch msgid
-
-		} // end: if read message
-
-		// give the write thread time to use the port
-		if ( writing_status > false ) {
-			usleep(100); // look for components of batches at 10kHz
-		}
-
-	} // end: while not received all
-
+            }
+        }
+        // give the write thread time to use the port
+        if ( writing_status > false ) {
+            usleep(100); // look for components of batches at 10kHz
+        }
+    } // end: while not received all
 	return;
 }
 
@@ -217,7 +206,6 @@ write_joint_status()
     mavlink_message_t message;
     mavlink_msg_manipulator_joint_status_encode(system_id, companion_id, &message, &jonit_status);
 
-
     // --------------------------------------------------------------------------
     //   WRITE
     // --------------------------------------------------------------------------
@@ -263,7 +251,7 @@ start()
     result = pthread_create( &read_tid, NULL, &start_autopilot_interface_read_thread, this );
     if ( result ) throw result;
 
-//	// now we're reading messages
+    // now we're reading messages
     printf("\n");
 
 	// --------------------------------------------------------------------------
@@ -398,12 +386,12 @@ Autopilot_Interface::
 read_thread()
 {
 	reading_status = true;
-    printf("read_thread\n");
+    printf("\n autopilot_interface read_thread is running\n");
 
 	while ( ! time_to_exit )
 	{
 		read_messages();
-        usleep(1000); // Read batches at 100Hz
+        usleep(100); // Read batches at 10KHz
 	}
 
 	reading_status = false;
@@ -419,11 +407,8 @@ Autopilot_Interface::
 write_thread(void)
 {
 	// signal startup
-//	writing_status = 2;
-
 	writing_status = true;
-
-	// Pixhawk needs to see off-board commands at minimum 2Hz,
+    printf("\n autopilot_interface write_thread is running\n");
 	// otherwise it will go into fail safe
 	while ( !time_to_exit )
 	{

@@ -312,7 +312,7 @@ EcBoolean EcCytonCommands::frameMovementExample
 //   desiredPose.setTranslation(EcVector(.1, .2, .05));
    desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
    EcOrientation orient;//set roll, pitch,yaw
-   orient.setFrom123Euler( 0, 0,-EcPi);
+   orient.setFrom123Euler( EcPi/6, -EcPi/6,EcPi/3);
 
  //  orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
    desiredPose.setOrientation(orient);
@@ -589,6 +589,7 @@ EcBoolean EcCytonCommands::getFrameStatus
 (EcCoordinateSystemTransformation coordStatus)
 {
     EcReal current_roll, current_pitch, current_yaw;
+    EcReal current_roll1, current_pitch1, current_yaw1;
     frameStatus.x = coordStatus.translation().x();
     frameStatus.y = coordStatus.translation().y();
     frameStatus.z = coordStatus.translation().z();
@@ -596,6 +597,11 @@ EcBoolean EcCytonCommands::getFrameStatus
     frameStatus.roll = current_roll;
     frameStatus.pitch = current_pitch;
     frameStatus.yaw = current_yaw;
+
+//    printf("123euler:\n%f;  %f;  %f;\n",current_roll,current_pitch,current_yaw);
+
+//    coordStatus.orientation().get321Euler(current_yaw1,current_pitch1,current_roll1);
+//    printf("321euler:\n%f;  %f;  %f;\n",current_roll1,current_pitch1,current_yaw1);
     return 0;
 }
 EcBoolean EcCytonCommands::getJoinStatus
