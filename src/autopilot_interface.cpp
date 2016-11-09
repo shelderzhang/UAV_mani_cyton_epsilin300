@@ -78,14 +78,27 @@ Autopilot_Interface(Serial_Port *serial_port_)
 
 	read_tid  = 0; // read thread id
 	write_tid = 0; // write thread id
-
+    // Start mutex
+    int result = pthread_mutex_init(&target_lock, NULL);
+    if ( result != 0 )
+    {
+        printf("\n autopilot_interface mutex init failed\n");
+        throw 1;
+    }
+    pthread_mutex_init(&endeff_lock, NULL);
+    pthread_mutex_init(&joints_lock, NULL);
 	serial_port = serial_port_; // serial port management object
 
 }
 
 Autopilot_Interface::
 ~Autopilot_Interface()
-{}
+{
+  pthread_mutex_destroy(&target_lock);
+  pthread_mutex_destroy(&endeff_lock);
+  pthread_mutex_destroy(&joints_lock);
+
+}
 
 
 // ------------------------------------------------------------------------------
@@ -119,7 +132,9 @@ read_messages()
                 case MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME:
                 {
                    // printf("MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME\n");
-                    mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
+                pthread_mutex_lock(&target_lock);
+                mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
+                pthread_mutex_unlock(&target_lock);
                   //  printf("target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
                     break;
                 }
@@ -162,7 +177,9 @@ write_endeff_frame_status()
 	// --------------------------------------------------------------------------
 	//   PACK PAYLOAD
 	// --------------------------------------------------------------------------
+    pthread_mutex_lock(&endeff_lock);
     mavlink_endeff_frame_status_t endeff_frame = endeff_frame_status;
+    pthread_mutex_unlock(&endeff_lock);
 	// --------------------------------------------------------------------------
 	//   ENCODE
 	// --------------------------------------------------------------------------
@@ -197,8 +214,9 @@ write_joint_status()
     // --------------------------------------------------------------------------
     //   PACK PAYLOAD
     // --------------------------------------------------------------------------
+    pthread_mutex_lock(&joints_lock);
     mavlink_manipulator_joint_status_t jonit_status = mani_joints;
-
+    pthread_mutex_unlock(&joints_lock);
     // --------------------------------------------------------------------------
     //   ENCODE
     // --------------------------------------------------------------------------

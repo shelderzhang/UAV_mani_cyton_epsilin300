@@ -569,6 +569,7 @@ EcBoolean EcCytonCommands::serialComTest
 
 EcBoolean EcCytonCommands::setTargFrame()
 {
+pthread_mutex_lock(&(autopilot_interface->target_lock));
 targFrame.x = autopilot_interface->target_endeff_frame.x;
 targFrame.y = autopilot_interface->target_endeff_frame.y;
 targFrame.z = autopilot_interface->target_endeff_frame.z;
@@ -582,6 +583,7 @@ targFrame.roll_rate = autopilot_interface->target_endeff_frame.roll_rate;
 targFrame.pitch_rate = autopilot_interface->target_endeff_frame.pitch_rate;
 targFrame.yaw_rate = autopilot_interface->target_endeff_frame.yaw_rate;
 targFrame.arm_enable = autopilot_interface->target_endeff_frame.arm_enable;
+pthread_mutex_unlock(&(autopilot_interface->target_lock));
 return 0;
 }
 
@@ -589,11 +591,11 @@ EcBoolean EcCytonCommands::getFrameStatus
 (EcCoordinateSystemTransformation coordStatus)
 {
     EcReal current_roll, current_pitch, current_yaw;
-    EcReal current_roll1, current_pitch1, current_yaw1;
+    coordStatus.orientation().get321Euler(current_yaw,current_pitch,current_roll);
+
     frameStatus.x = coordStatus.translation().x();
     frameStatus.y = coordStatus.translation().y();
     frameStatus.z = coordStatus.translation().z();
-    coordStatus.orientation().get321Euler(current_yaw,current_pitch,current_roll);
     frameStatus.roll = current_roll;
     frameStatus.pitch = current_pitch;
     frameStatus.yaw = current_yaw;
@@ -620,6 +622,7 @@ EcBoolean EcCytonCommands::getJoinStatus
 
 EcBoolean EcCytonCommands::updateFrameStatus()
 {
+    pthread_mutex_lock(&(autopilot_interface->endeff_lock));
     autopilot_interface->endeff_frame_status.x = frameStatus.x;
     autopilot_interface->endeff_frame_status.y = frameStatus.y;
     autopilot_interface->endeff_frame_status.z = frameStatus.z;
@@ -635,11 +638,13 @@ EcBoolean EcCytonCommands::updateFrameStatus()
     autopilot_interface->endeff_frame_status.arm_enable = frameStatus.arm_enable;
     autopilot_interface->endeff_frame_status.gripper_posi = frameStatus.gripper_posi;
     autopilot_interface->endeff_frame_status.gripper_status = frameStatus.gripper_status;
+    pthread_mutex_unlock(&(autopilot_interface->endeff_lock));
     return 0;
 }
 
 EcBoolean EcCytonCommands:: updateJoinStatus()
 {
+    pthread_mutex_lock(&(autopilot_interface->joints_lock));
     autopilot_interface->mani_joints.joint_posi_1 = joinStatus.joint_posi_1;
     autopilot_interface->mani_joints.joint_posi_2 = joinStatus.joint_posi_2;
     autopilot_interface->mani_joints.joint_posi_3 = joinStatus.joint_posi_3;
@@ -663,5 +668,6 @@ EcBoolean EcCytonCommands:: updateJoinStatus()
     autopilot_interface->mani_joints.torque_5 = joinStatus.torque_5;
     autopilot_interface->mani_joints.torque_6 = joinStatus.torque_6;
     autopilot_interface->mani_joints.torque_7 = joinStatus.torque_7;
+    pthread_mutex_unlock(&(autopilot_interface->joints_lock));
     return 0;
 }

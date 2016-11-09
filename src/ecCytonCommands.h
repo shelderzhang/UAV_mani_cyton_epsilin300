@@ -124,7 +124,6 @@ public:
    virtual EcBoolean setTargFrame();
 
 
-
    /*get the all status of the Epsilon 300*/
    virtual EcBoolean getFrameStatus(EcCoordinateSystemTransformation coordStatus);
    virtual EcBoolean getJoinStatus(EcRealVector currJoin);

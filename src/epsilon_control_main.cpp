@@ -158,13 +158,13 @@ top (int argc, char **argv)
        jointposition[3] = -0.7;
        jointposition[5] = -0.7;
 
-       jointposition[0] = -1.6;
-       jointposition[1] = -0.5;
-       jointposition[2] = 0;
-       jointposition[3] = -0.5;
-       jointposition[4] = 0;
-       jointposition[5] = 0.47;
-       jointposition[6] = -1.6;
+//       jointposition[0] = -1.6;
+//       jointposition[1] = -0.5;
+//       jointposition[2] = 0;
+//       jointposition[3] = -0.5;
+//       jointposition[4] = 0;
+//       jointposition[5] = 0.47;
+//       jointposition[6] = -1.6;
     // initialize robotic arm COM in center
 //    jointposition[0] = -1.6;
 //    jointposition[1] = 0.6;
@@ -182,10 +182,10 @@ top (int argc, char **argv)
 
 //    /*Copy the target end-effector frame to Cyton epsilon300*/
 //     cytonCommands.frameMovementExample();
-//    while(1)
-//    {
-//        cytonCommands.frameMovementExample();
-//    }
+    while(1)
+    {
+        cytonCommands.frameMovementExample();
+    }
     // --------------------------------------------------------------------------
     //   Join threads of serial port
     // --------------------------------------------------------------------------

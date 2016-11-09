@@ -98,7 +98,7 @@ initialize_defaults()
 	int result = pthread_mutex_init(&lock, NULL);
 	if ( result != 0 )
 	{
-		printf("\n mutex init failed\n");
+        printf("\n serial_port mutex init failed\n");
 		throw 1;
 	}
 }

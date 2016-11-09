@@ -121,6 +121,9 @@ public:
     pthread_t read_tid;
     pthread_t write_tid;
 
+    pthread_mutex_t target_lock;
+    pthread_mutex_t endeff_lock;
+    pthread_mutex_t joints_lock;
 	void handle_quit( int sig );
 
 
