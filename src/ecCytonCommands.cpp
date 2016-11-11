@@ -7,7 +7,7 @@
 #include "ecCytonCommands.h"
 #include <control/ecEndEffectorSet.h>
 #include <controlCore/ecFrameEndEffector.h>
-#include <control/ecManipEndEffectorPlace.h>
+//#include <control/ecManipEndEffectorPlace.h>
 #include <foundCore/ecApplication.h>
 #include <foundCore/ecMacros.h>
 #include <manipulationDirector/ecManipulationActionManager.h>
@@ -24,6 +24,19 @@
 #define FRAME_EE_SET 1
 #define JOINT_CONTROL_EE_SET 0xFFFFFFFF
 
+
+void*
+read_armstatus_thread(void *args)
+{
+    // takes an autopilot object argument
+    EcCytonCommands *eccytoncommands = (EcCytonCommands *)args;
+
+    // run the object's read thread
+    eccytoncommands->read_armstatus_thread_main();
+
+
+    return NULL;
+}
 //------------------------------------------------------------------------------
 // Callback function.  Sets a local variable with completion status.
 static EcBoolean g_ManipulationComplete = EcFalse;
@@ -73,50 +86,54 @@ private:
 
 using namespace Ec;
 //----------------------------------constructor--------------------------------
-EcCytonCommands::EcCytonCommands
-   (
-   )
+EcCytonCommands::EcCytonCommands ( )
 {
 }
 EcCytonCommands::EcCytonCommands
-   (Autopilot_Interface *autopilot_interface_
-   )
+   (Autopilot_Interface *autopilot_interface_)
 {
     autopilot_interface = autopilot_interface_;
     memset(&frameStatus, 0, sizeof(frameStatus));
     memset(&joinStatus, 0, sizeof(joinStatus));
     memset(&targFrame, 0, sizeof(targFrame));
+    memset(&actualEEPlacement, 0, sizeof(actualEEPlacement));
+    memset(&currentJoints, 0, sizeof(currentJoints));
+
+    read_armstatus_tid  = 0; // read thread id
+    time_to_exit   = false;  // flag to signal thread exit
+    reading_status = 0;
+    int result = pthread_mutex_init(&actualEEP_lock, NULL);
+    if ( result != 0 )
+    {
+        printf("\n ecCytoncommand mutex init failed\n");
+        throw 1;
+    }
+    pthread_mutex_init(&actual_joint_lock, NULL);
 }
 //----------------------------------destructor---------------------------------
-EcCytonCommands::~EcCytonCommands
-   (
-   )
+EcCytonCommands::~EcCytonCommands ( )
 {
+    pthread_mutex_destroy(&actualEEP_lock);
+    pthread_mutex_destroy(&actual_joint_lock);
 }
 
 //----------------------------------overloading = -----------------------------
  EcCytonCommands& EcCytonCommands:: operator=
-   (
-    EcCytonCommands& orig
-   )
+   (EcCytonCommands& orig)
 {
    return *this;
 }
 
 //----------------------------------overloading == ----------------------------
 EcBoolean EcCytonCommands:: operator==
-   (
-   const EcCytonCommands& orig
-   )const
+   (const EcCytonCommands& orig)const
 {
    return EcTrue;
 }
 
 //----------------------------------open network-------------------------------
 EcBoolean EcCytonCommands::openNetwork
-   (
-   const EcString& m_IpAddress
-   )const
+   (const EcString& m_IpAddress)const
 {
    EcBoolean retVal = EcTrue;
    if(!init(m_IpAddress))
@@ -130,8 +147,7 @@ EcBoolean EcCytonCommands::openNetwork
 
 //----------------------------------close network------------------------------
 EcBoolean EcCytonCommands::closeNetwork
-   (
-   )const
+   ( )const
 {
    shutdown();
    return EcTrue;
@@ -143,42 +159,14 @@ EcBoolean EcCytonCommands::MoveJointsExample
    (
    const EcRealVector jointPosition,
    const EcReal angletolerance
-   )const
+   )
 {
    EcBoolean retVal=EcTrue;
    setEndEffectorSet(JOINT_CONTROL_EE_SET);
    EcSLEEPMS(500);
 
-   //vector of EcReals that holds the set of joint angles
-   EcRealVector currentJoints;
-   retVal &= getJointValues(currentJoints);
-
-   size_t size = currentJoints.size();
-   if(size < jointPosition.size())
-   {
-      size = currentJoints.size();
-   }
-   else if(size >= jointPosition.size())
-   {
-      size = jointPosition.size();
-   }
-
-   EcPrint(Debug) <<"Current Joint Angles: ( ";
-   for(size_t ii=0; ii<size; ++ii)
-   {
-      EcPrint(Debug)  << currentJoints[ii] << "," ;
-      currentJoints[ii] = jointPosition[ii];
-   }
-   EcPrint(Debug)  << " )" << std::endl;
-
-   std::cout << "Desired joint Angles: ( ";
-   for(size_t ii=0; ii<size; ++ii)
-   {
-      std::cout << currentJoints[ii] << "," ;
-   }
-   std::cout <<" )" << std::endl;
-
-   retVal &= setJointValues(currentJoints);
+   size_t size = jointPosition.size();
+   retVal &= setJointValues(jointPosition);
 
    //Check if achieved
    EcBooleanVector jointAchieved;
@@ -195,20 +183,17 @@ EcBoolean EcCytonCommands::MoveJointsExample
       EcSLEEPMS(interval);
       count++;
 
-      EcPrint(Debug) << "Moving ";
-      getJointValues(currentJoints);
-      EcPrint(Debug) << "Current Joints: ";
+      pthread_mutex_lock(&actual_joint_lock);
       for(size_t ii=0; ii<size; ++ii)
       {
-
-         EcPrint(Debug)  << " , " << currentJoints[ii];
-
          if( std::abs(jointPosition[ii]-currentJoints[ii])<angletolerance)
          {
             jointAchieved[ii]=EcTrue;
          }
       }
-      EcPrint(Debug) <<std::endl;
+      pthread_mutex_unlock(&actual_joint_lock);
+
+
       for(size_t ii=0; ii<size; ++ii)
       {
          if(!jointAchieved[ii])
@@ -222,13 +207,6 @@ EcBoolean EcCytonCommands::MoveJointsExample
          }
       }  
    }
-   EcPrint(Debug) << " Final Joint Angles: (";
-   for(size_t ii=0; ii<size; ++ii)
-   {
-      EcPrint(Debug) <<  currentJoints[ii] << "," ;
-   }
-   EcPrint(Debug) <<" ) " << std::endl;
-
    
    std::cout<< (positionAchieved ? "Achieved Joint State" : "Failed to Achieve Joint State") <<std::endl;
 
@@ -288,59 +266,32 @@ const EcCoordinateSystemTransformation& pose
 }
 
 //-----------------------------Frame Movement Example-------------------------
-EcBoolean EcCytonCommands::frameMovementExample
-   (
-
-   )
+EcBoolean EcCytonCommands::frameMovementExample ()
 {
    setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
 
-   // Copy the target end-effector frame to Cyton epsilon300 need lock ????
-
-     setTargFrame();
-
-   printf("target point:\n%f;  %f;  %f;\n",targFrame.x,targFrame.y,targFrame.z);
-
    /*translate end-effector frame to cyton desiredPose */
-//   EcVector endeffector_position_d;
    EcCoordinateSystemTransformation desiredPose;
-
-//   endeffector_position_d.setX(targFrame.x);
-//   endeffector_position_d.setY(targFrame.y);
-//   endeffector_position_d.setZ(targFrame.z);
-
-//   desiredPose.setTranslation(EcVector(.1, .2, .05));
    desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
-   EcOrientation orient;//set roll, pitch,yaw
-   orient.setFrom123Euler( EcPi/6, -EcPi/6,EcPi/3);
-
- //  orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
+   EcOrientation orient;//setyaw, pitch,roll
+//   orient.setFrom123Euler( EcPi/6, -EcPi/6,EcPi/3);
+   orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
    desiredPose.setOrientation(orient);
 
    /*define desiredPlacement to set epsilon300 move*/
    EcEndEffectorPlacement desiredPlacement(desiredPose);
 
    /*get status of epsilon300 arm*/
-   EcManipulatorEndEffectorPlacement actualEEPlacement;
-   EcRealVector currentJoints;
+//   EcManipulatorEndEffectorPlacement actualEEPlacement;
    EcCoordinateSystemTransformation offset, zero, actualCoord;
    zero.setTranslation(EcVector(0,0,0));
 
-   getActualPlacement(actualEEPlacement);
-    if (actualEEPlacement.offsetTransformations().size() < 1)
-   {
-      return EcFalse;
-   }
-
-   // if it hasnt been achieved after 5 sec, return false
+  // if it hasnt been achieved after 5 sec, return false
    EcU32 timeout = 5000;
    EcU32 interval = 10;
    EcU32 count = 0;
    EcBoolean achieved = EcFalse;
 
-   if (targFrame.arm_enable == 1)
-//   if (1)
-   {
      //set the desired position
      setDesiredPlacement(desiredPlacement,0,0);
    while(!achieved && !(count >= timeout/interval))
@@ -348,52 +299,18 @@ EcBoolean EcCytonCommands::frameMovementExample
       EcSLEEPMS(interval);
       count++;
 
-      EcPrint(Debug) << "Moving "<<std::endl;
-      getActualPlacement(actualEEPlacement);
-      if (actualEEPlacement.offsetTransformations().size() < 1)
-      {
-         return EcFalse;
-      }
-
+      pthread_mutex_lock(&actualEEP_lock);
       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
-      getFrameStatus(actualCoord);
-      // lock Frame status
-      updateFrameStatus();
+      pthread_mutex_unlock(&actualEEP_lock);
 
-      getJointValues(currentJoints);
-      getJoinStatus(currentJoints);
-      // lock Join status
-      updateJoinStatus();
-
-      //get the transformation between the actual and desired 
+      //get the transformation between the actual and desired
       offset=(actualCoord.inverse()) * desiredPose;
-      EcPrint(Debug)<<"distance between actual and desired: "<<offset.translation().mag()<<std::endl;
-
       if(offset.approxEq(zero,.00001))
       {
-         EcPrint(Debug)<<"Achieved Pose"<<std::endl;
          achieved = EcTrue;
       }
    }
-   }
-   else
-   {
-       getActualPlacement(actualEEPlacement);
-       if (actualEEPlacement.offsetTransformations().size() < 1)
-       {
-          return EcFalse;
-       }
 
-       actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
-       getFrameStatus(actualCoord);
-       // lock Frame status
-       updateFrameStatus();
-
-       getJointValues(currentJoints);
-       getJoinStatus(currentJoints);
-       // lock Join status
-       updateJoinStatus();
-   }
    std::cout<< (achieved ? "Achieved Pose" : "Failed to Achieve Pose") <<std::endl;
    return achieved;
 
@@ -401,26 +318,36 @@ EcBoolean EcCytonCommands::frameMovementExample
 
 //-----------------------------move gripper test-------------------------
 EcBoolean EcCytonCommands::moveGripperExample
-   (
-   const EcReal gripperPos
-   )const
+   ( const EcReal gripperPos )
 {
-   EcManipulatorEndEffectorPlacement actualEEPlacement,desiredEEPlacement;
+
+   EcManipulatorEndEffectorPlacement desiredEEPlacement;
+   EcEndEffectorPlacementVector state;
+   EcEndEffectorPlacement state0;
+   EcEndEffectorPlacement state1;
    //switch to frame ee set, so the link doesnt move when we try and grip
    setEndEffectorSet(FRAME_EE_SET);
-   EcSLEEPMS(100);
+   EcSLEEPMS(50);
+
+
    //get the current placement of the end effectors
-   getActualPlacement(actualEEPlacement);
-
-   //0 is the Wrist roll link (point or frame end effector), 
+   //0 is the Wrist roll link (point or frame end effector),
    //1 is the first gripper finger link (linear constraint end effector)
-   EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
+//   printf("\n actualEEP_lock moving gripper\n");
+//   pthread_mutex_lock(&actualEEP_lock);
+//   printf("\n actualEEP_locked moving gripper\n");
+   state = actualEEPlacement.offsetTransformations();
+//   state1 = actualEEPlacement.offsetTransformations();
+//   pthread_mutex_unlock(&actualEEP_lock);
+   printf("\n actualEEP_unlock moving gripper\n");
 
-   if (state.size() < 2)
-   {
-      // The server isn't connected to a robot.
-      return EcFalse;
-   }
+   printf("\n get state moving gripper\n");
+
+//   if (state.size() < 2)
+//   {
+//      // The server isn't connected to a robot.
+//      return EcFalse;
+//   }
 
    //set the translation of the driving gripper finger
    EcCoordinateSystemTransformation gripperfinger1trans = state[1].coordSysXForm();
@@ -439,18 +366,20 @@ EcBoolean EcCytonCommands::moveGripperExample
    EcU32 interval = 10;
    EcU32 count = 0;
    EcBoolean achieved = EcFalse;
+   EcEndEffectorPlacement currentState;
+   EcCoordinateSystemTransformation currgripperfinger1trans;
+   EcReal difference;
    while(!achieved && !(count >= timeout/interval))
    {
       EcSLEEPMS(interval);
       count++;
+      printf("\n start  gripper\n");
+      pthread_mutex_lock(&actualEEP_lock);
+      currentState = actualEEPlacement.offsetTransformations()[1];
+      pthread_mutex_unlock(&actualEEP_lock);
 
-      EcPrint(Debug) << "Moving "<<std::endl;
-
-      getActualPlacement(actualEEPlacement);
-      EcEndEffectorPlacementVector currentState = actualEEPlacement.offsetTransformations();
-      EcCoordinateSystemTransformation gripperfinger1trans = currentState[1].coordSysXForm();
-      EcReal difference = std::abs(gripperPos - gripperfinger1trans.translation().z());
-      EcPrint(Debug)<<"distance between actual and desired: "<< difference <<std::endl;
+      currgripperfinger1trans = currentState.coordSysXForm();
+      difference = std::abs(gripperPos - gripperfinger1trans.translation().z());
 
       if(difference < .000001)
       {
@@ -520,51 +449,66 @@ EcBoolean EcCytonCommands::resetToHome
    return retVal;
 }
 
-EcBoolean EcCytonCommands::serialComTest
-   (
-   )const
+//-----------------------------read_armstatus_thread_main-------------------------
+void EcCytonCommands::read_armstatus_thread_main()
 {
-    autopilot_interface->endeff_frame_status.x = 1;
-    autopilot_interface->endeff_frame_status.y = 2;
-    autopilot_interface->endeff_frame_status.z = 3;
-    autopilot_interface->endeff_frame_status.roll = 4;
-    autopilot_interface->endeff_frame_status.pitch = 5;
-    autopilot_interface->endeff_frame_status.yaw = 6;
-    autopilot_interface->endeff_frame_status.vx=7;
-    autopilot_interface->endeff_frame_status.vy=8;
-    autopilot_interface->endeff_frame_status.vz=9;
-    autopilot_interface->endeff_frame_status.roll_rate =10;
-    autopilot_interface->endeff_frame_status.pitch_rate =11;
-    autopilot_interface->endeff_frame_status.yaw_rate =12;
-    autopilot_interface->endeff_frame_status.arm_enable=1;
-    autopilot_interface->endeff_frame_status.gripper_posi=2024;
-    autopilot_interface->endeff_frame_status.gripper_status=1;
 
-    autopilot_interface->mani_joints.joint_posi_1 = 7;
-    autopilot_interface->mani_joints.joint_posi_2 = 8;
-    autopilot_interface->mani_joints.joint_posi_3 = 9;
-    autopilot_interface->mani_joints.joint_posi_4 = 10;
-    autopilot_interface->mani_joints.joint_posi_5 = 11;
-    autopilot_interface->mani_joints.joint_posi_6 = 12;
-    autopilot_interface->mani_joints.joint_posi_7 = 13;
+   printf("\n epsilon300 read_armstatus_thread is running! \n");
 
-    autopilot_interface->mani_joints.joint_rate_1 =1;
-    autopilot_interface->mani_joints.joint_rate_2 =2;
-    autopilot_interface->mani_joints.joint_rate_3 =3;
-    autopilot_interface->mani_joints.joint_rate_4 =4;
-    autopilot_interface->mani_joints.joint_rate_5 =5;
-    autopilot_interface->mani_joints.joint_rate_6 =6;
-    autopilot_interface->mani_joints.joint_rate_7 =7;
+    EcCoordinateSystemTransformation actualCoord;
 
-    autopilot_interface->mani_joints.torque_1 = 7;
-    autopilot_interface->mani_joints.torque_2 = 6;
-    autopilot_interface->mani_joints.torque_3 = 5;
-    autopilot_interface->mani_joints.torque_4 = 4;
-    autopilot_interface->mani_joints.torque_5 = 3;
-    autopilot_interface->mani_joints.torque_6 = 2;
-    autopilot_interface->mani_joints.torque_7 = 1;
+while ( !time_to_exit )
+{
+    pthread_mutex_lock(&actualEEP_lock);
+    getActualPlacement(actualEEPlacement);
+    pthread_mutex_unlock(&actualEEP_lock);
 
-   return 0;
+    actualCoord=actualEEPlacement.offsetTransformations()[0].coordSysXForm();
+    getFrameStatus(actualCoord);
+    updateFrameStatus();
+
+    pthread_mutex_lock(&actual_joint_lock);
+    getJointValues(currentJoints);
+    pthread_mutex_unlock(&actual_joint_lock);
+
+    getJoinStatus(currentJoints);
+    updateJoinStatus();
+    usleep(1000);
+}
+}
+
+//-----------------------------thread start-------------------------
+void EcCytonCommands::start()
+{ 
+
+    if (pthread_create( &read_armstatus_tid, NULL, &read_armstatus_thread, this ))
+    {
+        printf("\n error:fail to create read_armstatus_thread \n");
+    }
+}
+
+
+void EcCytonCommands::stop()
+{
+
+    printf("Close read_armstatus_thread \n");
+
+    // signal exit
+    time_to_exit = true;
+    // wait for exit
+    pthread_join(read_armstatus_tid ,NULL);
+
+}
+
+
+void EcCytonCommands::handle_quit( int sig )
+{
+    try {
+        stop();
+    }
+    catch (int error) {
+        fprintf(stderr,"Warning, could not stop serial port\n");
+    }
 }
 
 EcBoolean EcCytonCommands::setTargFrame()

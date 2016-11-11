@@ -57,7 +57,7 @@
 #include <foundCommon/ecCoordSysXForm.h>
 
 #include "epsilon_control_main.h"
-#include "ecCytonCommands.h"
+//#include "ecCytonCommands.h"
 
 #define RC_CHECK(fun) do \
    { \
@@ -130,13 +130,9 @@ top (int argc, char **argv)
 	 */
 	serial_port_quit         = &serial_port;
 	autopilot_interface_quit = &autopilot_interface;
+    cytonCommands_quit = &cytonCommands;
 	signal(SIGINT,quit_handler);
 
-	/*
-     * This is where the port is opened, and read and write threads are started.
-	 */
-	serial_port.start();
-	autopilot_interface.start();
 
     // --------------------------------------------------------------------------
     //   Cyton epsilon300 control start
@@ -152,7 +148,14 @@ top (int argc, char **argv)
     cytonCommands.openNetwork(ipAddress);
 
    // initialize robotic arm
-    EcSLEEPMS(500);
+    EcSLEEPMS(2000);
+    /*
+     * This is where the port is opened, and read and write threads are started.
+     */
+    serial_port.start();
+    autopilot_interface.start();
+    cytonCommands.start();
+
     EcRealVector jointposition(7);
        jointposition[1] = -0.7;
        jointposition[3] = -0.7;
@@ -174,26 +177,36 @@ top (int argc, char **argv)
 //    jointposition[5] = 0.6;
 //    jointposition[6] = -1.6;
 
-
-
-
     //moves to forward position
+//       cytonCommands.moveGripperExample(.0001);
+       EcSLEEPMS(500);
+/*       cytonCommands.moveGripperExample(.0149)*/;
+       EcSLEEPMS(500);
     RC_CHECK(cytonCommands.MoveJointsExample(jointposition, .000001));//Joint Movement Example
+//    cytonCommands.moveGripperExample(.0001);
+    EcSLEEPMS(500);
+//    cytonCommands.moveGripperExample(.0149);
+    EcSLEEPMS(500);
+
 
 //    /*Copy the target end-effector frame to Cyton epsilon300*/
-//     cytonCommands.frameMovementExample();
+
     while(1)
     {
-        cytonCommands.frameMovementExample();
+    cytonCommands.setTargFrame();
+    printf("target point:\n%f;  %f;  %f;\n",cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
+    cytonCommands.frameMovementExample();
+//    cytonCommands.moveGripperExample(.0001);
+//    cytonCommands.moveGripperExample(.0149);
     }
     // --------------------------------------------------------------------------
     //   Join threads of serial port
     // --------------------------------------------------------------------------
     pthread_join (autopilot_interface.read_tid, NULL);
     pthread_join (autopilot_interface.write_tid, NULL);
-
+    pthread_join (cytonCommands.read_armstatus_tid, NULL);
     cytonCommands.closeNetwork();
-	// woot!
+
 	return 0;
 
 }
@@ -268,9 +281,20 @@ quit_handler( int sig )
 
     // serial port
     try {
+
         serial_port_quit->handle_quit(sig);
     }
     catch (int error){}
+
+ // serial port
+    try {
+
+        cytonCommands_quit->handle_quit(sig);
+    }
+    catch (int error){}
+
+
+
 
 	// end program here
 	exit(0);

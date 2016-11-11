@@ -11,10 +11,11 @@
 #include <foundCore/ecTypes.h>
 #include <foundCommon/ecCoordSysXForm.h>
 #include <UAV_mani/mavlink.h>
+#include <pthread.h>
 #include "autopilot_interface.h"
+#include <control/ecManipEndEffectorPlace.h>
 
-
-
+void* read_armstatus_thread(void*args);
 /// This class uses the remote commands API to communicate with the 
 //  ActinViewer/CytonViewer or ActinRT with the remoteCommandServerPlugin loaded.
 class EcCytonCommands
@@ -73,7 +74,7 @@ public:
       (
       const EcRealVector jointPosition,
       const EcReal angletolerance
-      )const;
+      );
 
 
    /// Move the gripper on the server side
@@ -82,7 +83,7 @@ public:
    virtual EcBoolean moveGripperExample
       (
       const EcReal gripperPos
-      )const;
+      );
    /// move the robot using point EE set (only constrains position (x,y,z))
    /// @param[in] pose (EcCoordinateSystemTransformation&) desired pose
    /// @return         (EcBoolean) flag which returns the status of command
@@ -115,10 +116,6 @@ public:
        (
        )const;
 
-   virtual EcBoolean serialComTest
-       (
-       )const;
-
   /*set the target end-eff frame to targFrame
    * while lock autopilot_interface.target_endeff_frame*/
    virtual EcBoolean setTargFrame();
@@ -134,14 +131,28 @@ public:
    virtual EcBoolean updateFrameStatus();
    virtual EcBoolean updateJoinStatus();
 
-protected:
-   Autopilot_Interface *autopilot_interface;
+   char reading_status;
    /*targFrame commands from pixhawk*/
    mavlink_target_endeff_frame_t targFrame;
+   pthread_t read_armstatus_tid;
+   pthread_mutex_t actualEEP_lock;
+   pthread_mutex_t actual_joint_lock;
 
-   /*frameStatus frameStatus of Epsilon 300 need to send to pixhawk*/
+   void read_armstatus_thread_main();
+   void start();
+   void stop();
+   void handle_quit( int sig );
+protected:
+   /* Status of Epsilon300 arm*/
+   EcManipulatorEndEffectorPlacement actualEEPlacement;
+   EcRealVector currentJoints;
+
+   Autopilot_Interface *autopilot_interface;
+
+   /* frameStatus of Epsilon 300 need to send to pixhawk*/
    mavlink_endeff_frame_status_t frameStatus;
    mavlink_manipulator_joint_status_t joinStatus;
+   bool time_to_exit;
 };
 
 #endif //ecCytonCommands_H_

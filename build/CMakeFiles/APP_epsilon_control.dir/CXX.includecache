@@ -15853,8 +15853,6 @@ control/ecEndEffectorSet.h
 -
 controlCore/ecFrameEndEffector.h
 -
-control/ecManipEndEffectorPlace.h
--
 foundCore/ecApplication.h
 -
 foundCore/ecMacros.h
@@ -15885,8 +15883,12 @@ foundCommon/ecCoordSysXForm.h
 -
 UAV_mani/mavlink.h
 -
+pthread.h
+-
 autopilot_interface.h
 /home/gyz/src/UAV_mani_epsilon300/src/autopilot_interface.h
+control/ecManipEndEffectorPlace.h
+-
 
 /home/gyz/src/UAV_mani_epsilon300/src/epsilon_control_main.cpp
 foundCore/ecApplication.h
@@ -15897,8 +15899,6 @@ foundCommon/ecCoordSysXForm.h
 -
 epsilon_control_main.h
 /home/gyz/src/UAV_mani_epsilon300/src/epsilon_control_main.h
-ecCytonCommands.h
-/home/gyz/src/UAV_mani_epsilon300/src/ecCytonCommands.h
 
 /home/gyz/src/UAV_mani_epsilon300/src/epsilon_control_main.h
 iostream
@@ -15925,6 +15925,8 @@ sys/time.h
 -
 UAV_mani/mavlink.h
 -
+ecCytonCommands.h
+/home/gyz/src/UAV_mani_epsilon300/src/ecCytonCommands.h
 autopilot_interface.h
 /home/gyz/src/UAV_mani_epsilon300/src/autopilot_interface.h
 serial_port.h

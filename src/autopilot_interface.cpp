@@ -135,7 +135,7 @@ read_messages()
                 pthread_mutex_lock(&target_lock);
                 mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
                 pthread_mutex_unlock(&target_lock);
-                  //  printf("target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
+                printf("\n recive px4 target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
                     break;
                 }
 				default:
@@ -264,21 +264,23 @@ start()
 	//   READ THREAD
 	// --------------------------------------------------------------------------
 
-    printf("\n Start Autopilot_interface read_thread \n");
 
     result = pthread_create( &read_tid, NULL, &start_autopilot_interface_read_thread, this );
-    if ( result ) throw result;
+    if ( result )
+    {
+        printf("\n error:fail to start autopilot_interface_read_thread \n");
+    }
 
-    // now we're reading messages
-    printf("\n");
 
 	// --------------------------------------------------------------------------
 	//   WRITE THREAD
 	// --------------------------------------------------------------------------
-    printf("\n Start Autopilot_interface write_thread \n");
 
 	result = pthread_create( &write_tid, NULL, &start_autopilot_interface_write_thread, this );
-	if ( result ) throw result;
+    if ( result )
+    {
+        printf("\n error:fail to start autopilot_interface_write_thread \n");
+    }
 
     // --------------------------------------------------------------------------
     //   CHECK FOR MESSAGES
@@ -331,7 +333,7 @@ stop()
 	// now the read and write threads are closed
 	printf("\n");
 
-	// still need to close the serial_port separately
+
 }
 
 // ------------------------------------------------------------------------------
@@ -341,8 +343,6 @@ void
 Autopilot_Interface::
 start_read_thread()
 {
-    printf("start_read_thread\n");
-
 	if ( reading_status != 0 )
 	{
 		fprintf(stderr,"read thread already running\n");
