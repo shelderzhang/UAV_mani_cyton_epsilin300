@@ -156,48 +156,18 @@ top (int argc, char **argv)
     autopilot_interface.start();
     cytonCommands.start();
 
-    EcRealVector jointposition(7);
-       jointposition[1] = -0.7;
-       jointposition[3] = -0.7;
-       jointposition[5] = -0.7;
-
-//       jointposition[0] = -1.6;
-//       jointposition[1] = -0.5;
-//       jointposition[2] = 0;
-//       jointposition[3] = -0.5;
-//       jointposition[4] = 0;
-//       jointposition[5] = 0.47;
-//       jointposition[6] = -1.6;
-    // initialize robotic arm COM in center
-//    jointposition[0] = -1.6;
-//    jointposition[1] = 0.6;
-//    jointposition[2] = 0;
-//    jointposition[3] = -1.6;
-//    jointposition[4] = -0.1;
-//    jointposition[5] = 0.6;
-//    jointposition[6] = -1.6;
-
-    //moves to forward position
-//       cytonCommands.moveGripperExample(.0001);
-       EcSLEEPMS(500);
-/*       cytonCommands.moveGripperExample(.0149)*/;
-       EcSLEEPMS(500);
-    RC_CHECK(cytonCommands.MoveJointsExample(jointposition, .000001));//Joint Movement Example
-//    cytonCommands.moveGripperExample(.0001);
-    EcSLEEPMS(500);
-//    cytonCommands.moveGripperExample(.0149);
-    EcSLEEPMS(500);
-
-
+    /*initialize the position of the robotic arm*/
+    cytonCommands.resetToHome();
+    EcSLEEPMS(3000);
 //    /*Copy the target end-effector frame to Cyton epsilon300*/
 
     while(1)
     {
     cytonCommands.setTargFrame();
-    printf("target point:\n%f;  %f;  %f;\n",cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
+//    printf("target point:\n%f;  %f;  %f;\n",cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
     cytonCommands.frameMovementExample();
-//    cytonCommands.moveGripperExample(.0001);
-//    cytonCommands.moveGripperExample(.0149);
+    cytonCommands.moveGripperExample(.0001);
+    cytonCommands.moveGripperExample(.0135);
     }
     // --------------------------------------------------------------------------
     //   Join threads of serial port

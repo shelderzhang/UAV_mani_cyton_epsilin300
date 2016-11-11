@@ -114,7 +114,7 @@ public:
    /// move the robot to home position(zero joint angles for all the joints)
    virtual EcBoolean resetToHome
        (
-       )const;
+       );
 
   /*set the target end-eff frame to targFrame
    * while lock autopilot_interface.target_endeff_frame*/

@@ -183,6 +183,7 @@ EcBoolean EcCytonCommands::MoveJointsExample
       EcSLEEPMS(interval);
       count++;
 
+      //check if every joint achieved
       pthread_mutex_lock(&actual_joint_lock);
       for(size_t ii=0; ii<size; ++ii)
       {
@@ -281,8 +282,7 @@ EcBoolean EcCytonCommands::frameMovementExample ()
    /*define desiredPlacement to set epsilon300 move*/
    EcEndEffectorPlacement desiredPlacement(desiredPose);
 
-   /*get status of epsilon300 arm*/
-//   EcManipulatorEndEffectorPlacement actualEEPlacement;
+   /*define the erro variable*/
    EcCoordinateSystemTransformation offset, zero, actualCoord;
    zero.setTranslation(EcVector(0,0,0));
 
@@ -321,73 +321,64 @@ EcBoolean EcCytonCommands::moveGripperExample
    ( const EcReal gripperPos )
 {
 
-   EcManipulatorEndEffectorPlacement desiredEEPlacement;
-   EcEndEffectorPlacementVector state;
-   EcEndEffectorPlacement state0;
-   EcEndEffectorPlacement state1;
-   //switch to frame ee set, so the link doesnt move when we try and grip
-   setEndEffectorSet(FRAME_EE_SET);
-   EcSLEEPMS(50);
+    EcManipulatorEndEffectorPlacement desiredEEPlacement;
+    //switch to frame ee set, so the link doesnt move when we try and grip
+    setEndEffectorSet(FRAME_EE_SET);
+    EcSLEEPMS(100);
+    //get the current placement of the end effectors
+    pthread_mutex_lock(&actualEEP_lock);
+    EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
+    pthread_mutex_unlock(&actualEEP_lock);
+
+    //0 is the Wrist roll link (point or frame end effector),
+    //1 is the first gripper finger link (linear constraint end effector)
 
 
-   //get the current placement of the end effectors
-   //0 is the Wrist roll link (point or frame end effector),
-   //1 is the first gripper finger link (linear constraint end effector)
-//   printf("\n actualEEP_lock moving gripper\n");
-//   pthread_mutex_lock(&actualEEP_lock);
-//   printf("\n actualEEP_locked moving gripper\n");
-   state = actualEEPlacement.offsetTransformations();
-//   state1 = actualEEPlacement.offsetTransformations();
-//   pthread_mutex_unlock(&actualEEP_lock);
-   printf("\n actualEEP_unlock moving gripper\n");
 
-   printf("\n get state moving gripper\n");
+    if (state.size() < 2)
+    {
+       // The server isn't connected to a robot.
+       return EcFalse;
+    }
 
-//   if (state.size() < 2)
-//   {
-//      // The server isn't connected to a robot.
-//      return EcFalse;
-//   }
+    //set the translation of the driving gripper finger
+    EcCoordinateSystemTransformation gripperfinger1trans = state[1].coordSysXForm();
+    gripperfinger1trans.setTranslation(EcVector(0,0,gripperPos));
+    EcEndEffectorPlacement finger1placement = state[1];
+    finger1placement.setCoordSysXForm(gripperfinger1trans);
+    state[1]=finger1placement;
 
-   //set the translation of the driving gripper finger
-   EcCoordinateSystemTransformation gripperfinger1trans = state[1].coordSysXForm();
-   gripperfinger1trans.setTranslation(EcVector(0,0,gripperPos));
-   EcEndEffectorPlacement finger1placement = state[1];
-   finger1placement.setCoordSysXForm(gripperfinger1trans);
-   state[1]=finger1placement;
+    desiredEEPlacement.setOffsetTransformations(state);
 
-   desiredEEPlacement.setOffsetTransformations(state);
+    //set the desired placement
+    setDesiredPlacement(desiredEEPlacement,0);
 
-   //set the desired placement
-   setDesiredPlacement(desiredEEPlacement,0);
+    // if it hasnt been achieved after 2 sec, return false
+    EcU32 timeout = 2000;
+    EcU32 interval = 10;
+    EcU32 count = 0;
+    EcBoolean achieved = EcFalse;
+    while(!achieved && !(count >= timeout/interval))
+    {
+       EcSLEEPMS(interval);
+       count++;
 
-   // if it hasnt been achieved after 2 sec, return false
-   EcU32 timeout = 2000;
-   EcU32 interval = 10;
-   EcU32 count = 0;
-   EcBoolean achieved = EcFalse;
-   EcEndEffectorPlacement currentState;
-   EcCoordinateSystemTransformation currgripperfinger1trans;
-   EcReal difference;
-   while(!achieved && !(count >= timeout/interval))
-   {
-      EcSLEEPMS(interval);
-      count++;
-      printf("\n start  gripper\n");
-      pthread_mutex_lock(&actualEEP_lock);
-      currentState = actualEEPlacement.offsetTransformations()[1];
-      pthread_mutex_unlock(&actualEEP_lock);
+       EcPrint(Debug) << "Moving "<<std::endl;
 
-      currgripperfinger1trans = currentState.coordSysXForm();
-      difference = std::abs(gripperPos - gripperfinger1trans.translation().z());
+       pthread_mutex_lock(&actualEEP_lock);
+       EcEndEffectorPlacementVector currentState = actualEEPlacement.offsetTransformations();
+       pthread_mutex_unlock(&actualEEP_lock);
+       EcCoordinateSystemTransformation gripperfinger1trans = currentState[1].coordSysXForm();
+       EcReal difference = std::abs(gripperPos - gripperfinger1trans.translation().z());
+       EcPrint(Debug)<<"distance between actual and desired: "<< difference <<std::endl;
 
-      if(difference < .000001)
-      {
-         achieved = EcTrue;
-      }
-   }
-   std::cout<< (achieved ? "Achieved Gripper Position" : "Failed to Achieve Gripper Position") <<std::endl;
-   return achieved;
+       if(difference < .000001)
+       {
+          achieved = EcTrue;
+       }
+    }
+    std::cout<< (achieved ? "Achieved Gripper Position" : "Failed to Achieve Gripper Position") <<std::endl;
+    return achieved;
 }
 
 //-----------------------------end effector velocity test-------------------------
@@ -430,21 +421,34 @@ EcBoolean EcCytonCommands::hardwareEnableTest
 //-----------------------------reset to home-------------------------
 EcBoolean EcCytonCommands::resetToHome
    (
-   )const
+   )
 {
-   EcRealVector joints;
-   EcBoolean retVal = getJointValues(joints);
+    EcBoolean retVal;
+    EcRealVector jointposition(7);
+       jointposition[1] = -0.7;
+       jointposition[3] = -0.7;
+       jointposition[5] = -0.7;
 
-   size_t size = joints.size();
+//       jointposition[0] = -1.6;
+//       jointposition[1] = -0.5;
+//       jointposition[2] = 0;
+//       jointposition[3] = -0.5;
+//       jointposition[4] = 0;
+//       jointposition[5] = 0.47;
+//       jointposition[6] = -1.6;
+    // initialize robotic arm COM in center
+//    jointposition[0] = -1.6;
+//    jointposition[1] = 0.6;
+//    jointposition[2] = 0;
+//    jointposition[3] = -1.6;
+//    jointposition[4] = -0.1;
+//    jointposition[5] = 0.6;
+//    jointposition[6] = -1.6;
 
-   // increment all joints except the last
-   for(size_t ii=0; ii<size; ++ii)
-   {
-      joints[ii] = 0.0;
-   }
+    //moves to forward position
 
-   retVal &= setJointValues(joints);
-   EcSLEEPMS(2000);
+    MoveJointsExample(jointposition, .000001);//Joint Movement Example
+    moveGripperExample(.0135);
 
    return retVal;
 }
