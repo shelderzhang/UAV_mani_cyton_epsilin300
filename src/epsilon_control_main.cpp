@@ -60,17 +60,17 @@
 //#include "ecCytonCommands.h"
 
 #define RC_CHECK(fun) do \
-   { \
-      std::cout << "Calling " << #fun << std::endl; \
-      if(!fun) \
-      { \
-         std::cerr << "Problem with command " << #fun << "\n"; \
-      } \
-      else \
-      {\
-        EcPrint(None) << #fun << " successfully completed!" << "\n"; \
-      }\
-   } while(0)
+{ \
+    std::cout << "Calling " << #fun << std::endl; \
+    if(!fun) \
+{ \
+    std::cerr << "Problem with command " << #fun << "\n"; \
+    } \
+    else \
+{\
+    EcPrint(None) << #fun << " successfully completed!" << "\n"; \
+    }\
+    } while(0)
 
 // ------------------------------------------------------------------------------
 //   TOP
@@ -79,41 +79,41 @@ int
 top (int argc, char **argv)
 {
 
-	// --------------------------------------------------------------------------
-	//   PARSE THE COMMANDS
-	// --------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    //   PARSE THE COMMANDS
+    // --------------------------------------------------------------------------
 
-	// Default input arguments
+    // Default input arguments
 
     char *uart_name = (char*)"/dev/ttyUSB0";
-	int baudrate = 57600;
+    int baudrate = 57600;
 
-	// do the parse, will throw an int if it fails
-	parse_commandline(argc, argv, uart_name, baudrate);
+    // do the parse, will throw an int if it fails
+    parse_commandline(argc, argv, uart_name, baudrate);
 
-	// --------------------------------------------------------------------------
-	//   PORT and THREAD STARTUP
-	// --------------------------------------------------------------------------
+    // --------------------------------------------------------------------------
+    //   PORT and THREAD STARTUP
+    // --------------------------------------------------------------------------
 
     /*
      * Construct a Serial_Port object
      * This object handles the opening and closing of the Robai cyton epsilon300 controller
      *  computer's serial port over which it will communicate to an autopilot.  It has
-	 * methods to read and write a mavlink_message_t object.  To help with read
+     * methods to read and write a mavlink_message_t object.  To help with read
      * and write in the context of pthreading, it gaurds port operations with a
      * pthread mutex lock (int fd).
-	 *
-	 */
-	Serial_Port serial_port(uart_name, baudrate);
+     *
+     */
+    Serial_Port serial_port(uart_name, baudrate);
 
 
-	/*
+    /*
      * Construct an Autopilot_Interface objiect,This object will start
      *  two threads for read and write MAVlink message of
      * commands to move the robotic arm and its status.
-	 *
-	 */
-	Autopilot_Interface autopilot_interface(&serial_port);
+     *
+     */
+    Autopilot_Interface autopilot_interface(&serial_port);
 
     /*
      *Construct an EcCytonCommands  object that control the robotic
@@ -122,32 +122,32 @@ top (int argc, char **argv)
      */
     EcCytonCommands cytonCommands(&autopilot_interface);
 
-	/*
-	 * Setup interrupt signal handler
+    /*
+     * Setup interrupt signal handler
      * Responds to early exits signaled with Ctrl-C.  The handler will command
      * to close threads and the port.
      *
-	 */
-	serial_port_quit         = &serial_port;
-	autopilot_interface_quit = &autopilot_interface;
+     */
+    serial_port_quit         = &serial_port;
+    autopilot_interface_quit = &autopilot_interface;
     cytonCommands_quit = &cytonCommands;
-	signal(SIGINT,quit_handler);
+    signal(SIGINT,quit_handler);
 
 
     // --------------------------------------------------------------------------
     //   Cyton epsilon300 control start
     // --------------------------------------------------------------------------
 
-//   EcString cytonVersion = "300PX";
-//    EcString cytonDir = Ec::Application::getDataDirectory("cyton");
-//    if (cytonDir.empty())
-//    {
-//       cytonDir = ".";
-//    }
+    //   EcString cytonVersion = "300PX";
+    //    EcString cytonDir = Ec::Application::getDataDirectory("cyton");
+    //    if (cytonDir.empty())
+    //    {
+    //       cytonDir = ".";
+    //    }
     EcString ipAddress = "127.0.0.1";
     cytonCommands.openNetwork(ipAddress);
 
-   // initialize robotic arm
+    // initialize robotic arm
     EcSLEEPMS(2000);
     /*
      * This is where the port is opened, and read and write threads are started.
@@ -156,18 +156,39 @@ top (int argc, char **argv)
     autopilot_interface.start();
     cytonCommands.start();
 
-    /*initialize the position of the robotic arm*/
-    cytonCommands.resetToHome();
-    EcSLEEPMS(3000);
-//    /*Copy the target end-effector frame to Cyton epsilon300*/
+    /*initialize the position of the Gripper*/
+    cytonCommands.moveGripperExample(.0145);
+    //    cytonCommands.resetToHome();
+    EcSLEEPMS(2000);
+    //    /*Copy the target end-effector frame to Cyton epsilon300*/
 
     while(1)
     {
-    cytonCommands.setTargFrame();
-//    printf("target point:\n%f;  %f;  %f;\n",cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
-    cytonCommands.frameMovementExample();
-    cytonCommands.moveGripperExample(.0001);
-    cytonCommands.moveGripperExample(.0135);
+
+        /*open or close the gripper */
+        if (cytonCommands.targFrame.arm_enable == 0)
+        {
+            cytonCommands.moveGripperExample(.0145);
+        }
+        else
+        {
+            cytonCommands.moveGripperExample(.0005);
+        }
+
+
+        /*move the robotic arm to the desired*/
+        cytonCommands.setTargFrame();
+        if ((cytonCommands.targFrame.x == 0)&&(cytonCommands.targFrame.y==0)&&(cytonCommands.targFrame.z==0))
+        {
+//            printf("\n resetToHome\n");
+            cytonCommands.resetToHome();
+        }
+        else
+        {
+//            printf("\n start move\n");
+            cytonCommands.frameMovementExample(cytonCommands.targFrame.x, cytonCommands.targFrame.y, cytonCommands.targFrame.z,
+                                               cytonCommands.targFrame.roll, cytonCommands.targFrame.pitch, cytonCommands.targFrame.yaw);
+        }
     }
     // --------------------------------------------------------------------------
     //   Join threads of serial port
@@ -177,7 +198,7 @@ top (int argc, char **argv)
     pthread_join (cytonCommands.read_armstatus_tid, NULL);
     cytonCommands.closeNetwork();
 
-	return 0;
+    return 0;
 
 }
 
@@ -190,45 +211,45 @@ void
 parse_commandline(int argc, char **argv, char *&uart_name, int &baudrate)
 {
 
-	// string for command line usage
-	const char *commandline_usage = "usage: mavlink_serial -d <devicename> -b <baudrate>";
+    // string for command line usage
+    const char *commandline_usage = "usage: mavlink_serial -d <devicename> -b <baudrate>";
 
-	// Read input arguments
-	for (int i = 1; i < argc; i++) { // argv[0] is "mavlink"
+    // Read input arguments
+    for (int i = 1; i < argc; i++) { // argv[0] is "mavlink"
 
-		// Help
-		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-			printf("%s\n",commandline_usage);
-			throw EXIT_FAILURE;
-		}
+        // Help
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            printf("%s\n",commandline_usage);
+            throw EXIT_FAILURE;
+        }
 
-		// UART device ID
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
-			if (argc > i + 1) {
-				uart_name = argv[i + 1];
+        // UART device ID
+        if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) {
+            if (argc > i + 1) {
+                uart_name = argv[i + 1];
 
-			} else {
-				printf("%s\n",commandline_usage);
-				throw EXIT_FAILURE;
-			}
-		}
+            } else {
+                printf("%s\n",commandline_usage);
+                throw EXIT_FAILURE;
+            }
+        }
 
-		// Baud rate
-		if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--baud") == 0) {
-			if (argc > i + 1) {
-				baudrate = atoi(argv[i + 1]);
+        // Baud rate
+        if (strcmp(argv[i], "-b") == 0 || strcmp(argv[i], "--baud") == 0) {
+            if (argc > i + 1) {
+                baudrate = atoi(argv[i + 1]);
 
-			} else {
-				printf("%s\n",commandline_usage);
-				throw EXIT_FAILURE;
-			}
-		}
+            } else {
+                printf("%s\n",commandline_usage);
+                throw EXIT_FAILURE;
+            }
+        }
 
-	}
-	// end: for each input argument
+    }
+    // end: for each input argument
 
-	// Done!
-	return;
+    // Done!
+    return;
 }
 
 
@@ -239,15 +260,15 @@ parse_commandline(int argc, char **argv, char *&uart_name, int &baudrate)
 void
 quit_handler( int sig )
 {
-	printf("\n");
+    printf("\n");
     printf("Terminating at user requst\n");
-	printf("\n");
+    printf("\n");
 
-	// autopilot interface
-	try {
-		autopilot_interface_quit->handle_quit(sig);
-	}
-	catch (int error){}
+    // autopilot interface
+    try {
+        autopilot_interface_quit->handle_quit(sig);
+    }
+    catch (int error){}
 
     // serial port
     try {
@@ -256,7 +277,7 @@ quit_handler( int sig )
     }
     catch (int error){}
 
- // serial port
+    // serial port
     try {
 
         cytonCommands_quit->handle_quit(sig);
@@ -266,8 +287,8 @@ quit_handler( int sig )
 
 
 
-	// end program here
-	exit(0);
+    // end program here
+    exit(0);
 
 }
 
@@ -278,18 +299,18 @@ quit_handler( int sig )
 int
 main(int argc, char **argv)
 {
-	// This program uses throw, wrap one big try/catch here
-	try
-	{
-		int result = top(argc,argv);
-		return result;
-	}
+    // This program uses throw, wrap one big try/catch here
+    try
+    {
+        int result = top(argc,argv);
+        return result;
+    }
 
-	catch ( int error )
-	{
+    catch ( int error )
+    {
         fprintf(stderr,"epsilon_control threw exception %i \n" , error);
-		return error;
-	}
+        return error;
+    }
 
 }
 

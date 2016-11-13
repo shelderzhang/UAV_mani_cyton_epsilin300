@@ -15863,6 +15863,8 @@ manipulationDirector/ecManipulationScript.h
 -
 manipulationDirector/ecManipulationDirector.h
 -
+manipulator/ecManipTorque.h
+-
 math.h
 -
 remoteCommand/ecRemoteCommand.h

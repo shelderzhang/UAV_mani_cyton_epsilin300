@@ -134,13 +134,16 @@ read_messages()
                    // printf("MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME\n");
                 pthread_mutex_lock(&target_lock);
                 mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
+                printf("\n px4 arm_enabel: %d \n",target_endeff_frame.arm_enable);
                 pthread_mutex_unlock(&target_lock);
+                printf("\n recive px4 arm_enabel: %d \n",target_endeff_frame.arm_enable);
+
                 printf("\n recive px4 target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
                     break;
                 }
 				default:
 				{
-                    printf("Warning, did not handle message id %i\n",message.msgid);
+//                    printf("Warning, did not handle message id %i\n",message.msgid);
 					break;
 				}
             }

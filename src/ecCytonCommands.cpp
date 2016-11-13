@@ -13,6 +13,7 @@
 #include <manipulationDirector/ecManipulationActionManager.h>
 #include <manipulationDirector/ecManipulationScript.h>
 #include <manipulationDirector/ecManipulationDirector.h>
+#include <manipulator/ecManipTorque.h>
 #include <math.h>
 #include <remoteCommand/ecRemoteCommand.h>
 #include <xmlReaderWriter/ecXmlObjectReaderWriter.h>
@@ -267,16 +268,17 @@ const EcCoordinateSystemTransformation& pose
 }
 
 //-----------------------------Frame Movement Example-------------------------
-EcBoolean EcCytonCommands::frameMovementExample ()
+EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float roll,float pitch,float yaw)
 {
    setEndEffectorSet(FRAME_EE_SET); // frame end effector set index
+//       printf("\n target point:\n%f;  %f;  %f;\n",x,y,z);
 
    /*translate end-effector frame to cyton desiredPose */
    EcCoordinateSystemTransformation desiredPose;
-   desiredPose.setTranslation(EcVector(targFrame.x,targFrame.y,targFrame.z));
-   EcOrientation orient;//setyaw, pitch,roll
-//   orient.setFrom123Euler( EcPi/6, -EcPi/6,EcPi/3);
-   orient.setFrom321Euler(targFrame.yaw, targFrame.pitch, targFrame.roll);
+   desiredPose.setTranslation(EcVector(x,y,z));
+   EcOrientation orient;//set yaw, pitch, roll
+   orient.setFrom123Euler( -2.88, -1.44,-1.30);
+//   orient.setFrom321Euler(yaw, pitch, roll);
    desiredPose.setOrientation(orient);
 
    /*define desiredPlacement to set epsilon300 move*/
@@ -324,7 +326,7 @@ EcBoolean EcCytonCommands::moveGripperExample
     EcManipulatorEndEffectorPlacement desiredEEPlacement;
     //switch to frame ee set, so the link doesnt move when we try and grip
     setEndEffectorSet(FRAME_EE_SET);
-    EcSLEEPMS(100);
+    EcSLEEPMS(50);
     //get the current placement of the end effectors
     pthread_mutex_lock(&actualEEP_lock);
     EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
@@ -375,6 +377,14 @@ EcBoolean EcCytonCommands::moveGripperExample
        if(difference < .000001)
        {
           achieved = EcTrue;
+          if (gripperPos <= 0.001)
+          {
+              frameStatus.gripper_status = -1; cloed
+          }
+          else
+          {
+              frameStatus.gripper_status = 1;opend
+          }
        }
     }
     std::cout<< (achieved ? "Achieved Gripper Position" : "Failed to Achieve Gripper Position") <<std::endl;
@@ -425,30 +435,23 @@ EcBoolean EcCytonCommands::resetToHome
 {
     EcBoolean retVal;
     EcRealVector jointposition(7);
-       jointposition[1] = -0.7;
-       jointposition[3] = -0.7;
-       jointposition[5] = -0.7;
+//    jointposition[0] = -1.7;
+//    jointposition[1] = -0.7;
+//    jointposition[3] = -0.7;
+//    jointposition[5] = -0.7;
 
-//       jointposition[0] = -1.6;
-//       jointposition[1] = -0.5;
-//       jointposition[2] = 0;
-//       jointposition[3] = -0.5;
-//       jointposition[4] = 0;
-//       jointposition[5] = 0.47;
-//       jointposition[6] = -1.6;
     // initialize robotic arm COM in center
-//    jointposition[0] = -1.6;
-//    jointposition[1] = 0.6;
-//    jointposition[2] = 0;
-//    jointposition[3] = -1.6;
-//    jointposition[4] = -0.1;
-//    jointposition[5] = 0.6;
-//    jointposition[6] = -1.6;
+    jointposition[0] = -1.6;
+    jointposition[1] = 1.1;
+    jointposition[2] = -0.09;
+    jointposition[3] = -1.78;
+    jointposition[4] = 0.064;
+    jointposition[5] = -0.768;
+    jointposition[6] = -1.6;
 
     //moves to forward position
 
-    MoveJointsExample(jointposition, .000001);//Joint Movement Example
-    moveGripperExample(.0135);
+    MoveJointsExample(jointposition, .00001);//Joint Movement Example
 
    return retVal;
 }
@@ -548,12 +551,10 @@ EcBoolean EcCytonCommands::getFrameStatus
     frameStatus.pitch = current_pitch;
     frameStatus.yaw = current_yaw;
 
-//    printf("123euler:\n%f;  %f;  %f;\n",current_roll,current_pitch,current_yaw);
-
-//    coordStatus.orientation().get321Euler(current_yaw1,current_pitch1,current_roll1);
-//    printf("321euler:\n%f;  %f;  %f;\n",current_roll1,current_pitch1,current_yaw1);
     return 0;
 }
+
+
 EcBoolean EcCytonCommands::getJoinStatus
 (EcRealVector currJoin)
 

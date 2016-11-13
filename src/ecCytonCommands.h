@@ -94,7 +94,7 @@ public:
    /// @param[in] pose (EcCoordinateSystemTransformation&) desired pose
    /// @return         (EcBoolean) flag which returns the status of command
    virtual EcBoolean frameMovementExample
-      ();
+      (float x,float y,float z,float roll,float pitch,float yaw);
 
    /// move the end effector with the desired end effector velocity for one second
    /// @param[in] endVelo (EcRealVector&) desired velocity direction and magnitude [x,y,z]
