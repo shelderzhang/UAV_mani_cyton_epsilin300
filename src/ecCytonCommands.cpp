@@ -379,11 +379,11 @@ EcBoolean EcCytonCommands::moveGripperExample
           achieved = EcTrue;
           if (gripperPos <= 0.001)
           {
-              frameStatus.gripper_status = -1; cloed
+              frameStatus.gripper_status = -1; //cloed
           }
           else
           {
-              frameStatus.gripper_status = 1;opend
+              frameStatus.gripper_status = 1;//opend
           }
        }
     }
