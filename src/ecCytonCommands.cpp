@@ -164,7 +164,7 @@ EcBoolean EcCytonCommands::MoveJointsExample
 {
    EcBoolean retVal=EcTrue;
    setEndEffectorSet(JOINT_CONTROL_EE_SET);
-   EcSLEEPMS(500);
+   EcSLEEPMS(10);
 
    size_t size = jointPosition.size();
    retVal &= setJointValues(jointPosition);
@@ -278,6 +278,7 @@ EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float r
    desiredPose.setTranslation(EcVector(x,y,z));
    EcOrientation orient;//set yaw, pitch, roll
    orient.setFrom123Euler( -2.88, -1.44,-1.30);
+//    orient.setFrom321Euler(0, 0, 0);
 //   orient.setFrom321Euler(yaw, pitch, roll);
    desiredPose.setOrientation(orient);
 
@@ -307,7 +308,7 @@ EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float r
 
       //get the transformation between the actual and desired
       offset=(actualCoord.inverse()) * desiredPose;
-      if(offset.approxEq(zero,.00001))
+      if(offset.approxEq(zero,.0001))
       {
          achieved = EcTrue;
       }
@@ -326,7 +327,7 @@ EcBoolean EcCytonCommands::moveGripperExample
     EcManipulatorEndEffectorPlacement desiredEEPlacement;
     //switch to frame ee set, so the link doesnt move when we try and grip
     setEndEffectorSet(FRAME_EE_SET);
-    EcSLEEPMS(50);
+    EcSLEEPMS(10);
     //get the current placement of the end effectors
     pthread_mutex_lock(&actualEEP_lock);
     EcEndEffectorPlacementVector state = actualEEPlacement.offsetTransformations();
@@ -391,6 +392,62 @@ EcBoolean EcCytonCommands::moveGripperExample
     return achieved;
 }
 
+
+//-----------------------------pathPlanningExample test-------------------------
+EcBoolean EcCytonCommands::pathPlanningExample
+   (   float x, float y, float z   )
+{
+   EcBoolean retVal = EcTrue;
+   // run this the first time
+   std::cout << "Running path planning" << std::endl;
+
+   EcManipulatorEndEffectorPlacement desiredEEPlacement;
+   //switch to frame ee set, so the link doesnt move when we try and grip
+   setEndEffectorSet(FRAME_EE_SET);
+   EcSLEEPMS(100);
+   //get the current placement of the end effectors
+
+   EcCoordinateSystemTransformation desiredPose;
+   desiredPose.setTranslation(EcVector(x,y,z));
+   pthread_mutex_lock(&actualEEP_lock);
+   desiredEEPlacement = actualEEPlacement;
+   pthread_mutex_unlock(&actualEEP_lock);
+
+
+
+//   if (desiredEEPlacement.offsetTransformations().size() < 1)
+//   {
+//      return EcFalse;
+//   }
+   desiredEEPlacement.offsetTransformations()[0].setCoordSysXForm(desiredPose);
+
+//   /*translate end-effector frame to cyton desiredPose */
+//   EcCoordinateSystemTransformation desiredPose;
+//   desiredPose.setTranslation(EcVector(x,y,z));
+//   EcOrientation orient;//set yaw, pitch, roll
+//   orient.setFrom123Euler( -2.88, -1.44,-1.30);
+////   orient.setFrom321Euler(yaw, pitch, roll);
+//   desiredPose.setOrientation(orient);
+
+//   /*define desiredPlacement to set epsilon300 move*/
+//   EcEndEffectorPlacement desiredEEPlacement(desiredPose);
+
+   retVal = setPathPlanningDesiredPlacement(desiredEEPlacement);
+
+   if(!retVal)
+   {
+      return EcFalse;
+   }
+
+   Wait wait;
+   setManipulationCompletedCallback(boost::bind(&Wait::actionExecCompletionCallback, &wait, _1, _2));
+
+   // wait
+   retVal = wait.waitForCompletion();
+
+   return retVal;
+}
+
 //-----------------------------end effector velocity test-------------------------
 EcBoolean EcCytonCommands::endEffectorVelocityTest
    (
@@ -441,19 +498,20 @@ EcBoolean EcCytonCommands::resetToHome
 //    jointposition[5] = -0.7;
 
     // initialize robotic arm COM in center
-    jointposition[0] = -1.6;
-    jointposition[1] = 1.1;
-    jointposition[2] = -0.09;
-    jointposition[3] = -1.78;
-    jointposition[4] = 0.064;
-    jointposition[5] = -0.768;
-    jointposition[6] = -1.6;
+    jointposition[0] = -1.55;
+    jointposition[1] = -0.51;
+    jointposition[2] = -0.0475;
+    jointposition[3] = -1.8;
+    jointposition[4] = 0.055;
+    jointposition[5] = 0.6;
+    jointposition[6] = -1.66;
 
-    //moves to forward position
+//    //moves to forward position
 
     MoveJointsExample(jointposition, .00001);//Joint Movement Example
 
-   return retVal;
+
+    return retVal;
 }
 
 //-----------------------------read_armstatus_thread_main-------------------------

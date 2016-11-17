@@ -134,24 +134,23 @@ read_messages()
                    // printf("MAVLINK_MSG_ID_TARGET_ENDEFF_FRAME\n");
                 pthread_mutex_lock(&target_lock);
                 mavlink_msg_target_endeff_frame_decode(&message, &target_endeff_frame);
-                printf("\n px4 arm_enabel: %d \n",target_endeff_frame.arm_enable);
                 pthread_mutex_unlock(&target_lock);
                 printf("\n recive px4 arm_enabel: %d \n",target_endeff_frame.arm_enable);
 
-                printf("\n recive px4 target_endeff_frame :\n x= %f;  y = %f  \n",target_endeff_frame.x,target_endeff_frame.y);
+                printf("\n px4 target:\n x= %f;  y = %f; z= %f  \n",target_endeff_frame.x,target_endeff_frame.y,target_endeff_frame.z);
                     break;
                 }
 				default:
 				{
-//                    printf("Warning, did not handle message id %i\n",message.msgid);
+                    printf("Warning, did not handle message id %i\n",message.msgid);
 					break;
 				}
             }
         }
         // give the write thread time to use the port
-        if ( writing_status > false ) {
-            usleep(100); // look for components of batches at 10kHz
-        }
+//        if ( writing_status > false ) {
+//            usleep(50); // look for components of batches at 10kHz
+//        }
     } // end: while not received all
 	return;
 }
@@ -284,31 +283,6 @@ start()
     {
         printf("\n error:fail to start autopilot_interface_write_thread \n");
     }
-
-    // --------------------------------------------------------------------------
-    //   CHECK FOR MESSAGES
-    // --------------------------------------------------------------------------
-
-//    printf("CHECK FOR MESSAGES\n");
-
-//    while ( not system_id )
-//    {
-//        if ( time_to_exit )
-//            return;
-//        usleep(500000); // check at 2Hz
-//    }
-
-//    printf("Found\n");
-
-//    // now we know autopilot is sending messages
-//    printf("\n");
-
-
-//	// wait for it to be started
-//	while ( not writing_status )
-//        usleep(100000); // 10Hz
-//	printf("\n");
-//	// Done!
 	return;
 
 }

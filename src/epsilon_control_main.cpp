@@ -156,10 +156,17 @@ top (int argc, char **argv)
     autopilot_interface.start();
     cytonCommands.start();
 
+    bool closed_flag = 0;
+    bool home_flag = 0;
     /*initialize the position of the Gripper*/
-    cytonCommands.moveGripperExample(.0145);
+     cytonCommands.moveGripperExample(.0145);
+     EcSLEEPMS(1000);
+    cytonCommands.resetToHome();
+    home_flag = 1;
+
     //    cytonCommands.resetToHome();
     EcSLEEPMS(2000);
+
     //    /*Copy the target end-effector frame to Cyton epsilon300*/
 
     while(1)
@@ -168,11 +175,19 @@ top (int argc, char **argv)
         /*open or close the gripper */
         if (cytonCommands.targFrame.arm_enable == 0)
         {
+            if (closed_flag == 1)
+            {
             cytonCommands.moveGripperExample(.0145);
+            closed_flag = 0;
+            }
         }
         else
         {
-            cytonCommands.moveGripperExample(.0005);
+            if (closed_flag == 0)
+            {
+                cytonCommands.moveGripperExample(.0005);
+                closed_flag = 1;
+            }
         }
 
 
@@ -180,14 +195,21 @@ top (int argc, char **argv)
         cytonCommands.setTargFrame();
         if ((cytonCommands.targFrame.x == 0)&&(cytonCommands.targFrame.y==0)&&(cytonCommands.targFrame.z==0))
         {
-//            printf("\n resetToHome\n");
-            cytonCommands.resetToHome();
+            if (home_flag == 0)
+            {
+                printf("\n resetToHome\n");
+                cytonCommands.resetToHome();
+                home_flag = 1;
+            }
+
         }
         else
         {
-//            printf("\n start move\n");
+            printf("\n move the frame\n");
             cytonCommands.frameMovementExample(cytonCommands.targFrame.x, cytonCommands.targFrame.y, cytonCommands.targFrame.z,
                                                cytonCommands.targFrame.roll, cytonCommands.targFrame.pitch, cytonCommands.targFrame.yaw);
+//            cytonCommands.pathPlanningExample(cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
+            home_flag = 0;
         }
     }
     // --------------------------------------------------------------------------

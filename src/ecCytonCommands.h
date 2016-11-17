@@ -97,11 +97,17 @@ public:
       (float x,float y,float z,float roll,float pitch,float yaw);
 
    /// move the end effector with the desired end effector velocity for one second
-   /// @param[in] endVelo (EcRealVector&) desired velocity direction and magnitude [x,y,z]
+   /// @param[in] endVelo (EcRealVector&) desired velocity direction and magnitude [x,y,z] 
    virtual EcBoolean endEffectorVelocityTest
       (
       const EcRealVector& endVelo
       )const;
+
+   ///sample path planning to get to the desired pose
+   // @param[in] pose (EcCoordinateSystemTransformation&) desired Pose
+   /// @return         (EcBoolean) flag which returns the status of command
+   virtual EcBoolean pathPlanningExample
+      (float x, float y, float z);
 
    /// enable hardware test
    /// @param[in] flag     (EcBoolean) Whether to enable/disable hardware
