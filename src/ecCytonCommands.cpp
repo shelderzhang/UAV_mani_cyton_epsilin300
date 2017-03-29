@@ -277,9 +277,9 @@ EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float r
    EcCoordinateSystemTransformation desiredPose;
    desiredPose.setTranslation(EcVector(x,y,z));
    EcOrientation orient;//set yaw, pitch, roll
-   orient.setFrom123Euler( -2.88, -1.44,-1.30);
-//    orient.setFrom321Euler(0, 0, 0);
-//   orient.setFrom321Euler(yaw, pitch, roll);
+//   orient.setFrom123Euler( -2.88, -1.44,-1.30);
+//    orient.setFrom321Euler(roll, pitch, yaw);
+   orient.setFrom321Euler(yaw, pitch, roll);
    desiredPose.setOrientation(orient);
 
    /*define desiredPlacement to set epsilon300 move*/
@@ -291,7 +291,7 @@ EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float r
 
   // if it hasnt been achieved after 5 sec, return false
    EcU32 timeout = 5000;
-   EcU32 interval = 10;
+   EcU32 interval = 1;
    EcU32 count = 0;
    EcBoolean achieved = EcFalse;
 
@@ -308,7 +308,7 @@ EcBoolean EcCytonCommands::frameMovementExample (float x,float y,float z,float r
 
       //get the transformation between the actual and desired
       offset=(actualCoord.inverse()) * desiredPose;
-      if(offset.approxEq(zero,.0001))
+      if(offset.approxEq(zero,.001))
       {
          achieved = EcTrue;
       }
@@ -378,7 +378,7 @@ EcBoolean EcCytonCommands::moveGripperExample
        if(difference < .000001)
        {
           achieved = EcTrue;
-          if (gripperPos <= 0.001)
+          if (gripperPos <= 0.006)
           {
               frameStatus.gripper_status = -1; //cloed
           }
@@ -459,14 +459,14 @@ EcBoolean EcCytonCommands::endEffectorVelocityTest
    if(retVal)
    {
       // wait 100 ms to take effect
-      EcSLEEPMS(100);
+      EcSLEEPMS(50);
       retVal = setDesiredVelocity(endVelo);
 
-      // wait 1 second and then send zero velocity so it stops
-      EcSLEEPMS(1000);
+//      // wait 1 second and then send zero velocity so it stops
+//      EcSLEEPMS(1000);
 
-      EcRealVector zeroVelo(endVelo.size());
-      retVal = setDesiredVelocity(zeroVelo);
+//      EcRealVector zeroVelo(endVelo.size());
+//      retVal = setDesiredVelocity(zeroVelo);
 
       // change back to position control
       retVal = setControlMode(0);
@@ -498,13 +498,13 @@ EcBoolean EcCytonCommands::resetToHome
 //    jointposition[5] = -0.7;
 
     // initialize robotic arm COM in center
-    jointposition[0] = -1.55;
-    jointposition[1] = -0.51;
-    jointposition[2] = -0.0475;
-    jointposition[3] = -1.8;
-    jointposition[4] = 0.055;
-    jointposition[5] = 0.6;
-    jointposition[6] = -1.66;
+    jointposition[0] = -1.627554;
+    jointposition[1] = 1.00239;
+    jointposition[2] = -0.093573;
+    jointposition[3] = -1.39899;
+    jointposition[4] = 0.058291;
+    jointposition[5] = -1.313088;
+    jointposition[6] = 1.629;
 
 //    //moves to forward position
 

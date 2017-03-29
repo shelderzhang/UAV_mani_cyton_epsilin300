@@ -100,8 +100,8 @@ public:
    /// @param[in] endVelo (EcRealVector&) desired velocity direction and magnitude [x,y,z] 
    virtual EcBoolean endEffectorVelocityTest
       (
-      const EcRealVector& endVelo
-      )const;
+           const EcRealVector& endVelo
+           )const;
 
    ///sample path planning to get to the desired pose
    // @param[in] pose (EcCoordinateSystemTransformation&) desired Pose

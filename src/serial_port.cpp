@@ -217,7 +217,7 @@ open_serial()
 	// --------------------------------------------------------------------------
 	//   OPEN PORT
 	// --------------------------------------------------------------------------
-	printf("OPEN PORT\n");
+    printf("OPEN A SERIAL PORT\n");
 
 	fd = _open_port(uart_name);
 
@@ -503,12 +503,12 @@ _read_port(uint8_t &cp)
 {
 
 	// Lock
-	pthread_mutex_lock(&lock);
+//	pthread_mutex_lock(&lock);
 
 	int result = read(fd, &cp, 1);
 
 	// Unlock
-	pthread_mutex_unlock(&lock);
+//	pthread_mutex_unlock(&lock);
 
 	return result;
 }

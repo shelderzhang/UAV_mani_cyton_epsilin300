@@ -185,7 +185,7 @@ top (int argc, char **argv)
         {
             if (closed_flag == 0)
             {
-                cytonCommands.moveGripperExample(.0005);
+                cytonCommands.moveGripperExample(.003);
                 closed_flag = 1;
             }
         }
@@ -193,12 +193,15 @@ top (int argc, char **argv)
 
         /*move the robotic arm to the desired*/
         cytonCommands.setTargFrame();
-        if ((cytonCommands.targFrame.x == 0)&&(cytonCommands.targFrame.y==0)&&(cytonCommands.targFrame.z==0))
+        if ((fabs(cytonCommands.targFrame.x) < 0.000001)
+            && (fabs(cytonCommands.targFrame.y) < 0.000001)
+            &&(fabs(cytonCommands.targFrame.z - 0.15) < 0.000001))
         {
             if (home_flag == 0)
             {
                 printf("\n resetToHome\n");
                 cytonCommands.resetToHome();
+                EcSLEEPMS(100);
                 home_flag = 1;
             }
 
@@ -206,10 +209,11 @@ top (int argc, char **argv)
         else
         {
             printf("\n move the frame\n");
+            home_flag = 0;
             cytonCommands.frameMovementExample(cytonCommands.targFrame.x, cytonCommands.targFrame.y, cytonCommands.targFrame.z,
                                                cytonCommands.targFrame.roll, cytonCommands.targFrame.pitch, cytonCommands.targFrame.yaw);
-//            cytonCommands.pathPlanningExample(cytonCommands.targFrame.x,cytonCommands.targFrame.y,cytonCommands.targFrame.z);
-            home_flag = 0;
+
+
         }
     }
     // --------------------------------------------------------------------------
