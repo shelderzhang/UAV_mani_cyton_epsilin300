@@ -193,10 +193,11 @@ top (int argc, char **argv)
 
         /*move the robotic arm to the desired*/
         cytonCommands.setTargFrame();
-        if ((fabs(cytonCommands.targFrame.x) < 0.000001)
-            && (fabs(cytonCommands.targFrame.y) < 0.000001)
-            &&(fabs(cytonCommands.targFrame.z - 0.15) < 0.000001))
+        if ((fabs(cytonCommands.targFrame.x) < 0.00001)
+            && (fabs(cytonCommands.targFrame.y) < 0.00001)
+            &&(fabs(cytonCommands.targFrame.z) < 0.00001))
         {
+
             if (home_flag == 0)
             {
                 printf("\n resetToHome\n");

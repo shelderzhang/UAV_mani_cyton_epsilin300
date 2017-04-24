@@ -416,7 +416,7 @@ _setup_port(int baud, int data_bits, int stop_bits, bool parity, bool hardware_c
 	////struct termios options;
 	////tcgetattr(fd, &options);
 
-	// Apply baudrate
+    // Apply baudrate
 	switch (baud)
 	{
 		case 1200:
@@ -522,7 +522,7 @@ _write_port(char *buf, unsigned len)
 {
 
 	// Lock
-	pthread_mutex_lock(&lock);
+//	pthread_mutex_lock(&lock);
 
 	// Write packet via serial link
 	const int bytesWritten = static_cast<int>(write(fd, buf, len));
@@ -531,7 +531,7 @@ _write_port(char *buf, unsigned len)
 	tcdrain(fd);
 
 	// Unlock
-	pthread_mutex_unlock(&lock);
+//	pthread_mutex_unlock(&lock);
 
 	return bytesWritten;
 }
